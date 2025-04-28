@@ -76,7 +76,7 @@ func (c *ConfigurationFile) getLocalConf() {
 	c.LocalConn = append(c.LocalConn, conn)
 }
 
-func (c *ConfigurationFile) getNodesConf(nodeName string, policiesList api.IPsecPolicyList) error {
+func (c *ConfigurationFile) GetNodesConf(nodeName string, policiesList api.IPsecPolicyList) error {
 	currentNode, err := kubernetes.GetCurrentNodeConfiguration(nodeName)
 	if err != nil {
 		return fmt.Errorf("unable to retrive current node configuration. %w", err)
@@ -199,11 +199,6 @@ func (c *ConfigurationFile) getNodesConf(nodeName string, policiesList api.IPsec
 		}
 	}
 
-	return nil
-}
-
-func (c *ConfigurationFile) Generate(nodeName string, resource api.IPsecPolicyList) error {
-	c.getNodesConf(nodeName, resource)
 	return nil
 }
 

@@ -218,6 +218,7 @@ rules:
   verbs:
   - get
   - list
+  - watch
 - apiGroups:
   - crd.projectcalico.org
   resources:

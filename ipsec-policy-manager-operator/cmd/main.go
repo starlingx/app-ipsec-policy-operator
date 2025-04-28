@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	starlingxwindrivercomv1 "starlingx.windriver.com/ipsec-policy-manager-operator/api/v1"
-	"starlingx.windriver.com/ipsec-policy-manager-operator/internal/controller"
+	"starlingx.windriver.com/ipsec-policy-manager-operator/internal/controllers"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -129,6 +129,23 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "IPsecPolicy")
 		os.Exit(1)
 	}
+
+	if err = (&controller.EndpointReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupEndpointManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Endpoint")
+		os.Exit(1)
+	}
+
+	if err = (&controller.NodeReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupNodeManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Node")
+		os.Exit(1)
+	}
+
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
