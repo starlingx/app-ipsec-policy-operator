@@ -1,0 +1,27 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: system-ipsec-configmap-controller-0
+  namespace: ipsec-policy-operator
+data:
+  k8s-nodes.conf: "connections {\n\tk8s-node-local {\n\t\tchildren {\n\t\t\tk8s-node-bypass
+    {\n\t\t\t\tstart_action = trap\n\t\t\t\tlocal_ts = 172.16.192.64/26\n\t\t\t\tremote_ts
+    = 172.16.192.64/26\n\t\t\t\tmode = pass\n\t\t\t}\n\t\t}\n\t}\n\tk8s-node-controller-1
+    {\n\t\treauth_time = 14400\n\t\trekey_time = 3600\n\t\tunique = never\n\t\tlocal_addrs
+    = 192.168.206.2\n\t\tremote_addrs = 192.168.206.3\n\t\tlocal {\n\t\t\tauth = pubkey\n\t\t\tcerts
+    = system-ipsec-certificate-controller-0.crt\n\t\t}\n\t\tremote {\n\t\t\tid = CN=*\n\t\t\tauth
+    = pubkey\n\t\t\tcacerts = system-local-ca-0.crt,system-local-ca-1.crt\n\t\t}\n\t\tchildren
+    {\n\t\t\ttcp_cm-cert-manager_egress {\n\t\t\t\tstart_action = start\n\t\t\t\tlocal_ts
+    = 172.16.192.64/26[tcp]\n\t\t\t\tremote_ts = 172.16.166.150[tcp/9402]\n\t\t\t\tmode
+    = tunnel\n\t\t\t}\n\t\t\ttcp_cm-cert-manager_ingress {\n\t\t\t\tstart_action =
+    start\n\t\t\t\tlocal_ts = 172.16.192.92[tcp/9402]\n\t\t\t\tremote_ts = 172.16.166.128/26[tcp]\n\t\t\t\tmode
+    = tunnel\n\t\t\t}\n\t\t\ttcp_kube-dns_egress {\n\t\t\t\tstart_action = start\n\t\t\t\tlocal_ts
+    = 172.16.192.64/26[tcp]\n\t\t\t\tremote_ts = 172.16.166.149[tcp/53,tcp/9153]\n\t\t\t\tmode
+    = tunnel\n\t\t\t}\n\t\t\ttcp_kube-dns_ingress {\n\t\t\t\tstart_action = start\n\t\t\t\tlocal_ts
+    = 172.16.192.101[tcp/53,tcp/9153]\n\t\t\t\tremote_ts = 172.16.166.128/26[tcp]\n\t\t\t\tmode
+    = tunnel\n\t\t\t}\n\t\t\tudp_kube-dns_egress {\n\t\t\t\tstart_action = start\n\t\t\t\tlocal_ts
+    = 172.16.192.64/26[udp]\n\t\t\t\tremote_ts = 172.16.166.149[udp/53]\n\t\t\t\tmode
+    = tunnel\n\t\t\t}\n\t\t\tudp_kube-dns_ingress {\n\t\t\t\tstart_action = start\n\t\t\t\tlocal_ts
+    = 172.16.192.101[udp/53]\n\t\t\t\tremote_ts = 172.16.166.128/26[udp]\n\t\t\t\tmode
+    = tunnel\n\t\t\t}\n\t\t}\n\t}\n}"
