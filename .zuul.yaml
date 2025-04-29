@@ -60,7 +60,6 @@
 - job:
     name: k8sapp-ipsec-policy-operator-tox-metadata
     parent: tox
-    voting: false
     description: |
       Run metadata test for k8sapp-ipsec-policy-operator
     nodeset: debian-bullseye
