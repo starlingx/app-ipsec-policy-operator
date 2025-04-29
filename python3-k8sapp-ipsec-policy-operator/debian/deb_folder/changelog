@@ -1,0 +1,5 @@
+python3-k8sapp-ipsec-policy-operator (1.0-1) unstable; urgency=medium
+
+  * Initial release.
+
+ --  Leonardo Mendes <leonardo.mendessantana@windriver.com>  Wed, 08 Jan 2025 09:32:42 +0000

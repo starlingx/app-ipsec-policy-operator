@@ -1,2 +1,3 @@
 helm-charts/custom/ipsec-policy-manager-helm
 helm-charts/custom/ipsec-policy-agent-helm
+python3-k8sapp-ipsec-policy-operator
