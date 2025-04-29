@@ -1,0 +1,28 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ipsec-policy-manager-editor-role
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: ipsec-policy-manager-operator
+rules:
+- apiGroups:
+  - starlingx.windriver.com
+  resources:
+  - ipsecpolicies
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - starlingx.windriver.com
+  resources:
+  - ipsecpolicies/status
+  verbs:
+  - get
+  - watch
+  - list

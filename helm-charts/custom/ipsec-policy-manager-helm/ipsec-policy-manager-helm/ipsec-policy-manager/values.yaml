@@ -1,0 +1,10 @@
+controllerManager:
+  kubeRbacProxy:
+    image:
+      repository: gcr.io/kubebuilder/kube-rbac-proxy
+      tag: v0.16.0
+  manager:
+    image:
+      repository: docker.io/lmend8s/ipsec-policy-manager-operator
+      tag: v0.0.1
+    replicas: 1

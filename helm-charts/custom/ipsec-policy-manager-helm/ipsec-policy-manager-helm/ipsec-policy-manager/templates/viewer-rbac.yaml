@@ -1,0 +1,22 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ipsec-policy-manager-viewer-role
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: ipsec-policy-manager-operator
+rules:
+- apiGroups:
+  - starlingx.windriver.com
+  resources:
+  - ipsecpolicies
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - starlingx.windriver.com
+  resources:
+  - ipsecpolicies/status
+  verbs:
+  - get
