@@ -5,6 +5,6 @@ controllerManager:
       tag: v0.16.0
   manager:
     image:
-      repository: docker.io/lmend8s/ipsec-policy-manager-operator
-      tag: v0.0.1
+      repository: docker.io/manoelneto/ipsec-policy-manager-operator
+      tag: v0.1.0
     replicas: 1
