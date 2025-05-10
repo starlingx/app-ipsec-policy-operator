@@ -3,9 +3,20 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+    cert-manager.io/inject-ca-from: ipsec-policy-operator/ipsec-policy-manager-serving-cert
     controller-gen.kubebuilder.io/version: v0.14.0
   name: ipsecpolicies.starlingx.windriver.com
 spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: ipsec-policy-manager-webhook-service
+          namespace: ipsec-policy-operator
+          path: /convert
+      conversionReviewVersions:
+      - v1
   group: starlingx.windriver.com
   names:
     kind: IPsecPolicy

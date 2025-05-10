@@ -379,7 +379,7 @@ spec:
     protocol: TCP
     targetPort: 9443
   selector:
-    control-plane: controller-manager
+    webhook: enabled
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -401,6 +401,7 @@ spec:
         kubectl.kubernetes.io/default-container: manager
       labels:
         control-plane: controller-manager
+        webhook: enabled
     spec:
       containers:
       - args:

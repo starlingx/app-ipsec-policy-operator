@@ -1,0 +1,34 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: ipsec-policy-operator/ipsec-policy-manager-serving-cert
+  labels:
+    app.kubernetes.io/component: webhook
+    app.kubernetes.io/created-by: ipsec-policy-manager-operator
+    app.kubernetes.io/instance: validating-webhook-configuration
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: validatingwebhookconfiguration
+    app.kubernetes.io/part-of: ipsec-policy-manager-operator
+  name: ipsec-policy-manager-validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: ipsec-policy-manager-webhook-service
+      namespace: ipsec-policy-operator
+      path: /validate-starlingx-windriver-com-v1-ipsecpolicy
+  failurePolicy: Fail
+  name: vipsecpolicy.kb.io
+  rules:
+  - apiGroups:
+    - starlingx.windriver.com
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - ipsecpolicies
+  sideEffects: None
