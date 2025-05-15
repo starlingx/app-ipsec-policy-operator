@@ -10,8 +10,12 @@
 
 from oslo_log import log as logging
 from sysinv.common import constants
+from sysinv.common import exception
 from sysinv.helm import lifecycle_base as base
 from sysinv.helm import lifecycle_utils
+from sysinv.helm.lifecycle_constants import LifecycleConstants
+
+from k8sapp_ipsec_policy_operator.common import constants as app_constants
 
 LOG = logging.getLogger(__name__)
 
@@ -27,43 +31,108 @@ class IPsecPolicyOperatorAppLifecycleOperator(base.AppLifecycleOperator):
         :param hook_info: LifecycleHookInfo object
 
         """
-        if hook_info.lifecycle_type == constants.APP_LIFECYCLE_TYPE_RESOURCE:
+        if hook_info.lifecycle_type == LifecycleConstants.APP_LIFECYCLE_TYPE_RESOURCE:
             if hook_info.operation == constants.APP_APPLY_OP:
-                if hook_info.relative_timing == constants.APP_LIFECYCLE_TIMING_PRE:
+                if hook_info.relative_timing == LifecycleConstants.APP_LIFECYCLE_TIMING_PRE:
                     return self.pre_apply(app_op, app, hook_info)
+            elif hook_info.operation == constants.APP_REMOVE_OP:
+                if hook_info.relative_timing == LifecycleConstants.APP_LIFECYCLE_TIMING_POST:
+                    return self.post_remove(app_op, app, hook_info)
 
-        if hook_info.lifecycle_type == constants.APP_LIFECYCLE_TYPE_OPERATION:
-            if hook_info.operation == constants.APP_BACKUP:
-                if hook_info.relative_timing == constants.APP_LIFECYCLE_TIMING_PRE:
-                    return self.pre_backup(app_op, app)
-
-        if hook_info.lifecycle_type == constants.APP_LIFECYCLE_TYPE_OPERATION:
-            if hook_info.operation == constants.APP_BACKUP:
-                if hook_info.relative_timing == constants.APP_LIFECYCLE_TIMING_POST:
-                    return self.post_backup(app_op, app)
-
-        if hook_info.lifecycle_type == constants.APP_LIFECYCLE_TYPE_OPERATION:
-            if hook_info.operation == constants.APP_RESTORE:
-                if hook_info.relative_timing == constants.APP_LIFECYCLE_TIMING_POST:
-                    return self.post_restore(app_op, app)
+        elif hook_info.lifecycle_type == LifecycleConstants.APP_LIFECYCLE_TYPE_SEMANTIC_CHECK:
+            if hook_info.operation == constants.APP_EVALUATE_REAPPLY_OP:
+                return self.reapply_check(app_op)
 
         super(IPsecPolicyOperatorAppLifecycleOperator, self).app_lifecycle_actions(
             context, conductor_obj, app_op, app, hook_info)
 
+    def get_existing_labels(self, dbapi, host):
+        LOG.info("Getting existing_labels")
+        existing_labels = {}
+        label_key = 'ipsec-policy-agent-operator'
+
+        label = None
+        try:
+            label = dbapi.label_query(host.id, label_key)
+        except exception.HostLabelNotFoundByKey:
+            pass
+        if label:
+            existing_labels.update({label_key: label.uuid})
+        return existing_labels
+
+    def save_label(self, dbapi, host, label):
+        LOG.info(f"Save '{label['key']}' label to host: {host.hostname}")
+        existing_labels = self.get_existing_labels(dbapi, host)
+
+        values = {
+            'host_id': host.id,
+            'label_key': label['key'],
+            'label_value': label['value']
+        }
+
+        try:
+            if existing_labels.get(label['key'], None):
+                # Update the value
+                label_uuid = existing_labels.get(label['key'])
+                new_label = dbapi.label_update(label_uuid, {'label_value': label['value']})
+            else:
+                new_label = dbapi.label_create(host.uuid, values)
+        except exception.HostLabelAlreadyExists:
+            LOG.error("Error creating label %s" % label['key'])
+        return new_label
+
+    def apply_labels(self, app_op):
+        dbapi = app_op._dbapi
+        ipsec_policy_operator_keys = app_constants.APP_LABELS
+        hosts = dbapi.ihost_get_list()
+
+        for host in hosts:
+            # IPsec Policy Operator labels are not applied to storage nodes
+            if host.personality == "storage":
+                continue
+
+            # Save 'ipsec-policy-agent-operator' label to hosts
+            label = {'key': ipsec_policy_operator_keys['ipsec-policy-agent'],
+                     'value': 'enabled'}
+            self.save_label(dbapi, host, label)
+
+    def remove_labels(self, app_op, host, label):
+        LOG.info(f"Removing '{label}' label to host: {host.hostname}")
+        # confirming if the label exists before removing it
+        dbapi = app_op._dbapi
+        lbl_obj = self.get_existing_labels(dbapi, host)
+        if label in lbl_obj:
+            dbapi.label_destroy(lbl_obj[label])
+            app_op._update_kubernetes_labels(host.hostname, {label: None})
+
+    def cleanup_labels(self, app_op):
+        hosts = app_op._dbapi.ihost_get_list()
+        label = app_constants.APP_LABELS['ipsec-policy-agent']
+
+        for host in hosts:
+            # Save 'ipsec-policy-agent-operator' label to hosts
+            self.remove_labels(app_op, host, label)
+
     def pre_apply(self, app_op, app, hook_info):
         LOG.info("Executing pre_apply for IPsec Policy Operator app")
 
-        # Create local registry secret
+        LOG.info("Creating local registry secrets")
         lifecycle_utils.create_local_registry_secrets(app_op, app, hook_info)
 
-    def pre_backup(self, app_op, app):
-        LOG.info("Executing pre_backup for IPsec Policy Operator app")
-        LOG.info("{} app: pre_backup".format(app.name))
+        LOG.info("Applying ipsec-policy-agent-operator labels")
+        self.apply_labels(app_op)
 
-    def post_backup(self, app_op, app):
-        LOG.info("Executing post_backup for IPsec Policy Operator app")
-        LOG.info("{} app: post_backp".format(app.name))
+    def post_remove(self, app_op, app, hook_info):
+        LOG.info("Executing post_remove for IPsec Policy Operator app")
 
-    def post_restore(self, app_op, app):
-        LOG.info("Executing post_restore for IPsec Policy Operator app")
-        LOG.info("{} app: pre_restore".format(app.name))
+        LOG.info("Removing local registry secrets")
+        lifecycle_utils.delete_local_registry_secrets(app_op, app, hook_info)
+
+        LOG.info("Removing ipsec-policy-agent-operator labels")
+        self.cleanup_labels(app_op)
+
+    def reapply_check(self, app_op):
+        LOG.info("Executing reapply_check for IPsec Policy Operator app")
+
+        LOG.info("Reapplying ipsec-policy-agent-operator labels to all nodes")
+        self.apply_labels(app_op)
