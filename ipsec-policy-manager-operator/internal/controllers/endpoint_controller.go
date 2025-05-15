@@ -23,20 +23,17 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	api "starlingx.windriver.com/ipsec-policy-manager-operator/api/v1"
-	"starlingx.windriver.com/ipsec-policy-manager-operator/pkg/kubernetes"
-	"starlingx.windriver.com/ipsec-policy-manager-operator/pkg/swanctl"
+	"starlingx.windriver.com/ipsec-policy-manager-operator/pkg/config"
 )
 
-// IPsecPolicyReconciler reconciles a IPsecPolicy object
-type IPsecPolicyReconciler struct {
+// EndpointReconciler reconciles a Node object
+type EndpointReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
@@ -81,15 +78,6 @@ func endpointPredicate(mgr ctrl.Manager) predicate.Funcs {
 	}
 }
 
-//+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list
-//+kubebuilder:rbac:groups="",resources=endpoints;pods,verbs=get;list;watch
-//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;create;delete;update;patch;watch
-//+kubebuilder:rbac:groups=crd.projectcalico.org,resources=blockaffinities,verbs=get;list
-
-//+kubebuilder:rbac:groups=starlingx.windriver.com,resources=ipsecpolicies,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=starlingx.windriver.com,resources=ipsecpolicies/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=starlingx.windriver.com,resources=ipsecpolicies/finalizers,verbs=update
-
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
@@ -99,9 +87,9 @@ func endpointPredicate(mgr ctrl.Manager) predicate.Funcs {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.17.3/pkg/reconcile
-func (r *IPsecPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *EndpointReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
-	log.Info("Reconciling IPsecPolicy custom resource")
+	log.Info("Reconciling Endpoint")
 
 	var err error
 	var crList api.IPsecPolicyList
@@ -113,50 +101,19 @@ func (r *IPsecPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	nodesConf, err := kubernetes.GetNodesConfiguration()
-	if err != nil {
-		log.Error(err, "unable to retrieve nodes configuration.")
+	if err = config.GenerateConf(r.Client, crList); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	var configFile *swanctl.ConfigurationFile
-	for _, node := range nodesConf.Nodes {
-		configFile = new(swanctl.ConfigurationFile)
-		if err = configFile.Generate(node.Hostname, crList); err != nil {
-			fmt.Println(node.Hostname, ": Unable to generate IPsec configuration: ", err)
-			return ctrl.Result{}, err
-		}
-		configData, err := configFile.GetConfigData()
-		if err != nil {
-			fmt.Println(node.Hostname, ": Unable to retrieve IPsec configuration data: ", err)
-			return ctrl.Result{}, err
-		}
-
-		// Create or update the ConfigMap
-		configMapName := kubernetes.IPsecConfigMapPrefix + node.Hostname
-		err = kubernetes.CreateOrUpdateConfigMap(
-			r.Client, kubernetes.OperatorNamespace, configMapName, configData)
-		if err != nil {
-			fmt.Println(node.Hostname, ": Failed to create/update configMap: ", err)
-			return ctrl.Result{}, err
-		}
-
-		configFile = nil
-	}
-
-	log.Info("Reconciling IPsecPolicy custom resource complete.")
+	log.Info("Reconciling Endpoint complete.")
 
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *IPsecPolicyReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *EndpointReconciler) SetupEndpointManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&api.IPsecPolicy{}).
-		Watches(
-			&corev1.Endpoints{},
-			&handler.EnqueueRequestForObject{},
-			builder.WithPredicates(endpointPredicate(mgr)),
-		).
+		For(&corev1.Endpoints{}).
+		WithEventFilter(endpointPredicate(mgr)).
 		Complete(r)
 }

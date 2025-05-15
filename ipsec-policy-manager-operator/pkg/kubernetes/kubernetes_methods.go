@@ -322,3 +322,58 @@ func CreateOrUpdateConfigMap(k8sClient client.Client, namespace string, name str
 	fmt.Println("Created new ConfigMap:", name)
 	return nil
 }
+
+// IsBlockaffinityConfigured validates if blockaffinities is already configured
+// to a specific node and returns true or false.
+func IsBlockaffinityConfigured(nodeName string) bool {
+	// Get blockaffinities in the cluster
+	rBlock := K8sResource{
+		ApiGroup:   "crd.projectcalico.org",
+		ApiVersion: "v1",
+		Resource:   "blockaffinities",
+		NameSpace:  "",
+	}
+	blockaffinities := rBlock.RetrieveResourceInfo()
+
+	// Print the info of the blockaffinities
+	for _, blockaffinity := range blockaffinities.Items {
+		// Node
+		node, found, err := unstructured.NestedString(blockaffinity.Object, "spec", "node")
+		if err != nil {
+			fmt.Println("Error getting blockaffinities:", err)
+			continue
+		}
+
+		if !found {
+			fmt.Println("Node not found")
+			continue
+		}
+
+		if node != nodeName {
+			continue
+		}
+
+		return true
+	}
+
+	return false
+}
+
+// DeleteConfigMap deletes a ConfigMap in the given namespace
+func DeleteConfigMap(k8sClient client.Client, namespace string, name string) error {
+	ctx := context.Background()
+
+	configMap := &corev1.ConfigMap{}
+	objKey := client.ObjectKey{Name: name, Namespace: namespace}
+	err := k8sClient.Get(ctx, objKey, configMap)
+	if err != nil {
+		return err
+	}
+
+	if deleteErr := k8sClient.Delete(ctx, configMap); deleteErr != nil {
+		return fmt.Errorf("failed to delete ConfigMap: %w", deleteErr)
+	}
+
+	fmt.Printf("Configmap %s deleted from namespace: %s\n", name, namespace)
+	return nil
+}
