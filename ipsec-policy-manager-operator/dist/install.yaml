@@ -409,7 +409,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: lmend8s/ipsec-policy-manager-operator:v0.0.1
+        image: starlingx/stx-ipsec-policy-manager-operator:master-debian-stable-latest
         livenessProbe:
           httpGet:
             path: /healthz

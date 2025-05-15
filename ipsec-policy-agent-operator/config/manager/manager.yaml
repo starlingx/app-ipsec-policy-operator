@@ -65,7 +65,7 @@ spec:
       containers:
       - command:
         - /manager
-        image: lmend8s/ipsec-policy-agent-operator:v0.0.1
+        image: controller:latest
         imagePullPolicy: IfNotPresent
         name: manager
         securityContext:
