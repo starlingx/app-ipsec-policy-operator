@@ -82,10 +82,10 @@ spec:
             drop:
             - ALL
         volumeMounts:
-          - name: ipsec-dir
-            mountPath: /etc/swanctl/conf.d/
-          - name: vici-unix-socket
-            mountPath: /var/run/charon.vici
+        - mountPath: /etc/swanctl/conf.d/
+          name: ipsec-dir
+        - mountPath: /var/run/charon.vici
+          name: vici-unix-socket
       nodeSelector:
         ipsec-policy-agent-operator: enabled
       securityContext:
@@ -94,11 +94,11 @@ spec:
       serviceAccountName: ipsec-policy-agent-controller-manager
       terminationGracePeriodSeconds: 10
       volumes:
-        - name: ipsec-dir
-          hostPath:
-            path: /etc/swanctl/conf.d/
-            type: Directory
-        - name: vici-unix-socket
-          hostPath:
-            path: /var/run/charon.vici
-            type: Socket
+      - hostPath:
+          path: /etc/swanctl/conf.d/
+          type: Directory
+        name: ipsec-dir
+      - hostPath:
+          path: /var/run/charon.vici
+          type: Socket
+        name: vici-unix-socket
