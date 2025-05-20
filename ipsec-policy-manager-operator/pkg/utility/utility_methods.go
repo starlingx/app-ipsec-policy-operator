@@ -39,8 +39,8 @@ func GetYamlConf(data interface{}) (string, error) {
 }
 
 // ContainsPort reports whether a port is present or not in an array of ports
-func (m *PortProtocol) ContainsPort(newPort int64) bool {
-	for _, port := range m.Ports {
+func ContainsPort(Ports []int64, newPort int64) bool {
+	for _, port := range Ports {
 		if port == newPort {
 			return true
 		}
@@ -77,7 +77,7 @@ func GetPolicyPorts(servicePorts string) []PortProtocol {
 		for i := range portProtocols {
 			if portProtocols[i].Protocol == portInfo[0] {
 				port, _ := strconv.ParseInt(portInfo[1], 10, 64)
-				if portProtocols[i].ContainsPort(port) == false {
+				if ContainsPort(portProtocols[i].Ports, port) == false {
 					portProtocols[i].Ports = append(portProtocols[i].Ports, port)
 				}
 			}
@@ -87,9 +87,9 @@ func GetPolicyPorts(servicePorts string) []PortProtocol {
 	return portProtocols
 }
 
-// GetServicePorts gets the service ports for a specific node using the
-// service's Name and Namespace. It returns an array of PortProtocol structs
-func GetServicePorts(nodeName string, serviceName string, serviceNamespace string) ([]PortProtocol, error) {
+// GetServicePorts gets the service ports using the service's Name and Namespace.
+// It returns an array of PortProtocol structs
+func GetServicePorts(serviceName string, serviceNamespace string) ([]PortProtocol, error) {
 	var (
 		rEndpoints = kubernetes.K8sResource{
 			ApiGroup:   "",
@@ -102,14 +102,17 @@ func GetServicePorts(nodeName string, serviceName string, serviceNamespace strin
 
 	endpoint, err := rEndpoints.RetrieveResourceInfoByName(serviceName)
 	if err != nil {
-		errMsg := fmt.Errorf("Service: %s - Namespace: %s", serviceName, serviceNamespace)
-		return portProtocols, errMsg
+		return portProtocols, err
 	}
 
 	subsets, found, err := unstructured.NestedSlice(endpoint.Object, "subsets")
-	if err != nil || !found {
-		errMsg := fmt.Errorf("Service: %s - Namespace: %s - error retrieving subsets: %w",
-			serviceName, serviceNamespace, err)
+	if err != nil {
+		errMsg := fmt.Errorf("error retrieving subsets: %w", err)
+		return portProtocols, errMsg
+	}
+
+	if !found {
+		errMsg := fmt.Errorf("subsets not found")
 		return portProtocols, errMsg
 	}
 
@@ -130,7 +133,7 @@ func GetServicePorts(nodeName string, serviceName string, serviceNamespace strin
 
 							for i := range portProtocols {
 								if portProtocols[i].Protocol == prot {
-									if portProtocols[i].ContainsPort(portNum) == false {
+									if ContainsPort(portProtocols[i].Ports, portNum) == false {
 										portProtocols[i].Ports = append(portProtocols[i].Ports, portNum)
 									}
 								}
@@ -157,7 +160,7 @@ func ProtectedPortsAndProtocols(serviceName string, policyPortProtocols []PortPr
 			for _, servicePortProtocol := range servicePortProtocols {
 				if policyPortProtocol.Protocol == servicePortProtocol.Protocol {
 					for _, policyPort := range policyPortProtocol.Ports {
-						if servicePortProtocol.ContainsPort(policyPort) {
+						if ContainsPort(servicePortProtocol.Ports, policyPort) {
 							if ContainsProtocol(portProtocols, policyPortProtocol.Protocol) == false {
 								var portProt PortProtocol
 								portProt.Protocol = policyPortProtocol.Protocol
@@ -166,7 +169,7 @@ func ProtectedPortsAndProtocols(serviceName string, policyPortProtocols []PortPr
 
 							for i := range portProtocols {
 								if portProtocols[i].Protocol == policyPortProtocol.Protocol {
-									if portProtocols[i].ContainsPort(policyPort) == false {
+									if ContainsPort(portProtocols[i].Ports, policyPort) == false {
 										portProtocols[i].Ports = append(portProtocols[i].Ports, policyPort)
 									}
 								}
@@ -201,14 +204,17 @@ func GetServiceAddresses(nodeName string, serviceName string, serviceNamespace s
 
 	endpoint, err := rEndpoints.RetrieveResourceInfoByName(serviceName)
 	if err != nil {
-		errMsg := fmt.Errorf("Service: %s - Namespace: %s", serviceName, serviceNamespace)
-		return serviceAddresses, errMsg
+		return serviceAddresses, err
 	}
 
 	subsets, found, err := unstructured.NestedSlice(endpoint.Object, "subsets")
-	if err != nil || !found {
-		errMsg := fmt.Errorf("Node: %s - Service: %s - Namespace: %s - error retrieving subsets: %w",
-			nodeName, serviceName, serviceNamespace, err)
+	if err != nil {
+		errMsg := fmt.Errorf("error retrieving subsets: %w", err)
+		return serviceAddresses, errMsg
+	}
+
+	if !found {
+		errMsg := fmt.Errorf("subsets not found")
 		return serviceAddresses, errMsg
 	}
 
