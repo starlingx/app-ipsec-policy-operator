@@ -17,9 +17,10 @@ limitations under the License.
 package config
 
 import (
-	"fmt"
+	"context"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	api "starlingx.windriver.com/ipsec-policy-manager-operator/api/v1"
 	"starlingx.windriver.com/ipsec-policy-manager-operator/pkg/kubernetes"
@@ -27,9 +28,12 @@ import (
 )
 
 func GenerateConf(k8sClient client.Client, crList api.IPsecPolicyList) error {
+	ctx := context.Background()
+	log := log.FromContext(ctx)
+
 	nodesConf, err := kubernetes.GetNodesConfiguration()
 	if err != nil {
-		fmt.Println("unable to retrieve nodes configuration.", err)
+		log.Error(err, "Unable to retrieve nodes configuration")
 		return err
 	}
 
@@ -37,12 +41,13 @@ func GenerateConf(k8sClient client.Client, crList api.IPsecPolicyList) error {
 	for _, node := range nodesConf.Nodes {
 		configFile = new(swanctl.ConfigurationFile)
 		if err = configFile.GetNodesConf(node.Hostname, crList); err != nil {
-			fmt.Println(node.Hostname, ": Unable to generate IPsec configuration: ", err)
+			log.Error(err, "Unable to generate IPsec configuration", "Node", node.Hostname)
 			return err
 		}
+
 		configData, err := configFile.GetConfigData()
 		if err != nil {
-			fmt.Println(node.Hostname, ": Unable to retrieve IPsec configuration data: ", err)
+			log.Error(err, "Unable to retrieve IPsec configuration data", "Node", node.Hostname)
 			return err
 		}
 
@@ -51,7 +56,7 @@ func GenerateConf(k8sClient client.Client, crList api.IPsecPolicyList) error {
 		err = kubernetes.CreateOrUpdateConfigMap(
 			k8sClient, kubernetes.OperatorNamespace, configMapName, configData)
 		if err != nil {
-			fmt.Println(node.Hostname, ": Failed to create/update configMap: ", err)
+			log.Error(err, "Failed to create/update configMap", "Node", node.Hostname)
 			return err
 		}
 

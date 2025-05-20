@@ -17,40 +17,45 @@ limitations under the License.
 package swanctl
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
 	api "starlingx.windriver.com/ipsec-policy-manager-operator/api/v1"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"starlingx.windriver.com/ipsec-policy-manager-operator/pkg/kubernetes"
 	"starlingx.windriver.com/ipsec-policy-manager-operator/pkg/utility"
 	"starlingx.windriver.com/ipsec-policy-manager-operator/pkg/vici"
 )
 
 func (c *ConfigurationFile) MarshalLocalConn() string {
+	ctx := context.Background()
+	log := log.FromContext(ctx)
 	var err error
 	var jsonData string
 
 	// Marshal the slice of VICI messages into JSON.
 	jsonBytes, err := json.MarshalIndent(c.LocalConn, "", "  ")
 	if err != nil {
-		fmt.Println("failed to marshal VICI messages: ", err)
+		log.Error(err, "failed to marshal VICI messages")
 		return jsonData
 	}
 
-	fmt.Println(jsonData)
 	jsonData = string(jsonBytes)
 
 	return jsonData
 }
 
 func (c *ConfigurationFile) MarshalConnections() string {
+	ctx := context.Background()
+	log := log.FromContext(ctx)
 	var err error
 	var jsonData string
 
 	// Marshal the slice of VICI messages into JSON.
 	jsonBytes, err := json.MarshalIndent(c.Connections, "", "  ")
 	if err != nil {
-		fmt.Println("failed to marshal VICI messages: ", err)
+		log.Error(err, "failed to marshal VICI messages")
 		return jsonData
 	}
 
@@ -77,6 +82,8 @@ func (c *ConfigurationFile) getLocalConf() {
 }
 
 func (c *ConfigurationFile) GetNodesConf(nodeName string, policiesList api.IPsecPolicyList) error {
+	ctx := context.Background()
+	log := log.FromContext(ctx)
 	currentNode, err := kubernetes.GetCurrentNodeConfiguration(nodeName)
 	if err != nil {
 		return fmt.Errorf("unable to retrive current node configuration. %w", err)
@@ -128,14 +135,14 @@ func (c *ConfigurationFile) GetNodesConf(nodeName string, policiesList api.IPsec
 				// Capture Service IP of the nodes
 				localServiceEndpointAddr, err := utility.GetServiceAddress(nodeName, policy.ServiceName, policy.ServiceNS)
 				if err != nil {
-					fmt.Printf("Unable to retrieve current node endpoints configuration. Error: %v\n", err)
+					log.Error(err, "Unable to retrieve current node endpoints configuration")
 					continue
 				}
 				c.ServiceEndpointAddr = localServiceEndpointAddr
 
 				nodeServiceEndpointAddr, err := utility.GetServiceAddress(node.Hostname, policy.ServiceName, policy.ServiceNS)
 				if err != nil {
-					fmt.Printf("Unable to retrieve %v node endpoints configuration. Error: %v\n", node.Hostname, err)
+					log.Error(err, "Unable to retrieve node endpoints configuration", "Node", node.Hostname)
 					continue
 				}
 
@@ -144,7 +151,7 @@ func (c *ConfigurationFile) GetNodesConf(nodeName string, policiesList api.IPsec
 
 				servicePortProtocols, err := utility.GetServicePorts(c.Hostname, policy.ServiceName, policy.ServiceNS)
 				if err != nil {
-					fmt.Printf("Unable to retrieve %v node endpoints configuration. Error: %v\n", node.Hostname, err)
+					log.Error(err, "Unable to retrieve node endpoints configuration", "Node", node.Hostname)
 					continue
 				}
 

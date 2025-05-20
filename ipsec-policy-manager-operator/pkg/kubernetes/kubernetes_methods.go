@@ -30,6 +30,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func (r *K8sResource) RetrieveResourceInfo() *unstructured.UnstructuredList {
@@ -124,6 +125,9 @@ func GetNodeNameByPodName(client client.Client, ctx context.Context, podName str
 }
 
 func GetCurrentNodeConfiguration(currentNodeName string) (NodeInfo, error) {
+	ctx := context.Background()
+	log := log.FromContext(ctx)
+
 	// Get nodes in the cluster
 	var (
 		currentNode unstructured.Unstructured
@@ -142,7 +146,7 @@ func GetCurrentNodeConfiguration(currentNodeName string) (NodeInfo, error) {
 		// Node name
 		nodeName, found, err := unstructured.NestedString(node.Object, "metadata", "name")
 		if err != nil || !found {
-			fmt.Println("Error or name not found:", err)
+			log.Error(err, "Error or name not found")
 			continue
 		}
 		if nodeName == currentNodeName {
@@ -156,8 +160,7 @@ func GetCurrentNodeConfiguration(currentNodeName string) (NodeInfo, error) {
 	// Node cluster host IPs
 	hostIPs, found, err := unstructured.NestedSlice(currentNode.Object, "status", "addresses")
 	if err != nil || !found {
-		fmt.Println("Error or addresses not found for current node:", err)
-		return NodeInfo{}, err
+		return NodeInfo{}, fmt.Errorf("Error or addresses not found for current node: %w", err)
 	}
 	//map[address:192.168.206.2 type:InternalIP] map[address:controller-0 type:Hostname]
 	for _, hostIP := range hostIPs {
@@ -183,7 +186,7 @@ func GetCurrentNodeConfiguration(currentNodeName string) (NodeInfo, error) {
 		// Node
 		node, found, err := unstructured.NestedString(blockaffinity.Object, "spec", "node")
 		if err != nil || !found {
-			fmt.Println("Error or node not found:", err)
+			log.Error(err, "Error or node not found")
 			continue
 		}
 
@@ -194,7 +197,7 @@ func GetCurrentNodeConfiguration(currentNodeName string) (NodeInfo, error) {
 		// Node cidr
 		cidr, found, err := unstructured.NestedString(blockaffinity.Object, "spec", "cidr")
 		if err != nil || !found {
-			fmt.Println("Error or cidr not found:", err)
+			log.Error(err, "Error or cidr not found")
 			continue
 		}
 
@@ -206,6 +209,9 @@ func GetCurrentNodeConfiguration(currentNodeName string) (NodeInfo, error) {
 }
 
 func GetNodesConfiguration() (NodesInfo, error) {
+	ctx := context.Background()
+	log := log.FromContext(ctx)
+
 	// Get nodes in the cluster
 	var (
 		rNode = K8sResource{
@@ -225,7 +231,7 @@ func GetNodesConfiguration() (NodesInfo, error) {
 		// Node name
 		nodeName, found, err := unstructured.NestedString(node.Object, "metadata", "name")
 		if err != nil || !found {
-			fmt.Println("Error or name not found:", err)
+			log.Error(err, "Error or name not found")
 			continue
 		}
 		//fmt.Println("node name:", nodeName)
@@ -235,7 +241,7 @@ func GetNodesConfiguration() (NodesInfo, error) {
 		// Node cluster host IPs
 		hostIPs, found, err := unstructured.NestedSlice(node.Object, "status", "addresses")
 		if err != nil || !found {
-			fmt.Println("Error or addresses not found:", err)
+			log.Error(err, "Error or addresses not found")
 			continue
 		}
 		//map[address:192.168.206.2 type:InternalIP] map[address:controller-0 type:Hostname]
@@ -261,7 +267,7 @@ func GetNodesConfiguration() (NodesInfo, error) {
 			// Node
 			node, found, err := unstructured.NestedString(blockaffinity.Object, "spec", "node")
 			if err != nil || !found {
-				fmt.Println("Error or node not found:", err)
+				log.Error(err, "Error or node not found")
 				continue
 			}
 			//fmt.Println("node:", node)
@@ -273,7 +279,7 @@ func GetNodesConfiguration() (NodesInfo, error) {
 			// Node cidr
 			cidr, found, err := unstructured.NestedString(blockaffinity.Object, "spec", "cidr")
 			if err != nil || !found {
-				fmt.Println("Error or cidr not found:", err)
+				log.Error(err, "Error or cidr not found")
 				continue
 			}
 			//fmt.Println("node cidr:", cidr)
@@ -290,6 +296,7 @@ func GetNodesConfiguration() (NodesInfo, error) {
 // CreateOrUpdateConfigMap creates or updates a ConfigMap in the given namespace
 func CreateOrUpdateConfigMap(k8sClient client.Client, namespace string, name string, data map[string]string) error {
 	ctx := context.Background()
+	log := log.FromContext(ctx)
 
 	// Define the ConfigMap
 	configMap := &corev1.ConfigMap{
@@ -310,7 +317,7 @@ func CreateOrUpdateConfigMap(k8sClient client.Client, namespace string, name str
 		if updateErr := k8sClient.Update(ctx, existingConfigMap); updateErr != nil {
 			return fmt.Errorf("failed to update ConfigMap: %w", updateErr)
 		}
-		fmt.Println("Updated existing ConfigMap:", name)
+		log.Info("Updated existing ConfigMap:", "name", name)
 		return nil
 	}
 
@@ -319,13 +326,16 @@ func CreateOrUpdateConfigMap(k8sClient client.Client, namespace string, name str
 		return fmt.Errorf("failed to create ConfigMap: %w", createErr)
 	}
 
-	fmt.Println("Created new ConfigMap:", name)
+	log.Info("Created new ConfigMap", "name", name)
 	return nil
 }
 
 // IsBlockaffinityConfigured validates if blockaffinities is already configured
 // to a specific node and returns true or false.
 func IsBlockaffinityConfigured(nodeName string) bool {
+	ctx := context.Background()
+	log := log.FromContext(ctx)
+
 	// Get blockaffinities in the cluster
 	rBlock := K8sResource{
 		ApiGroup:   "crd.projectcalico.org",
@@ -340,12 +350,12 @@ func IsBlockaffinityConfigured(nodeName string) bool {
 		// Node
 		node, found, err := unstructured.NestedString(blockaffinity.Object, "spec", "node")
 		if err != nil {
-			fmt.Println("Error getting blockaffinities:", err)
+			log.Error(err, "Error getting blockaffinities")
 			continue
 		}
 
 		if !found {
-			fmt.Println("Node not found")
+			log.Info("Node not found")
 			continue
 		}
 
@@ -362,6 +372,7 @@ func IsBlockaffinityConfigured(nodeName string) bool {
 // DeleteConfigMap deletes a ConfigMap in the given namespace
 func DeleteConfigMap(k8sClient client.Client, namespace string, name string) error {
 	ctx := context.Background()
+	log := log.FromContext(ctx)
 
 	configMap := &corev1.ConfigMap{}
 	objKey := client.ObjectKey{Name: name, Namespace: namespace}
@@ -374,6 +385,6 @@ func DeleteConfigMap(k8sClient client.Client, namespace string, name string) err
 		return fmt.Errorf("failed to delete ConfigMap: %w", deleteErr)
 	}
 
-	fmt.Printf("Configmap %s deleted from namespace: %s\n", name, namespace)
+	log.Info("Deleted configmap", "name", name, "namespace:", namespace)
 	return nil
 }

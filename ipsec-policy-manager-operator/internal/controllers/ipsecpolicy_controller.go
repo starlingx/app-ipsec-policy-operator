@@ -18,7 +18,6 @@ package controller
 
 import (
 	"context"
-	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -63,12 +62,12 @@ func (r *IPsecPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	// Fetch all CRs in all namespaces (NO `client.InNamespace()` filter)
 	err = r.List(ctx, &crList)
 	if err != nil {
-		fmt.Println("Error fetching CRs:", err)
+		log.Error(err, "Error fetching CRs")
 		return ctrl.Result{}, err
 	}
 
 	if len(crList.Items) == 0 {
-		fmt.Println("There are no IPsecPolicies to configure")
+		log.Info("There are no IPsecPolicies to configure")
 		log.Info("Reconciling IPsecPolicy custom resource complete.")
 		return ctrl.Result{}, err
 	}

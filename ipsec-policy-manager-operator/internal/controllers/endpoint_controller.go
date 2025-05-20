@@ -18,7 +18,6 @@ package controller
 
 import (
 	"context"
-	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -40,17 +39,18 @@ type EndpointReconciler struct {
 
 func endpointEventReconcile(obj client.Object, client client.Client) bool {
 	ctx := context.Background()
+	log := log.FromContext(ctx)
 
 	var ipsecPoliciesList api.IPsecPolicyList
 	if err := client.List(ctx, &ipsecPoliciesList); err != nil {
-		fmt.Println(err, "Unable to list IPsecPolicies")
+		log.Error(err, "Unable to list IPsecPolicies")
 		return false
 	}
 
 	for _, ipsecPolicyConf := range ipsecPoliciesList.Items {
 		for _, policy := range ipsecPolicyConf.Spec.Policies {
 			if obj.GetName() == policy.ServiceName {
-				fmt.Printf("Endpoints for service %s was modified. Reconciling operator. \n", policy.ServiceName)
+				log.Info("Endpoints for service was modified. Reconciling operator", "ServiceName", policy.ServiceName)
 				return true
 			}
 		}
@@ -97,7 +97,7 @@ func (r *EndpointReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	// Fetch all CRs in all namespaces (NO `client.InNamespace()` filter)
 	err = r.List(ctx, &crList)
 	if err != nil {
-		fmt.Println("Error fetching CRs:", err)
+		log.Error(err, "Error fetching CRs")
 		return ctrl.Result{}, err
 	}
 

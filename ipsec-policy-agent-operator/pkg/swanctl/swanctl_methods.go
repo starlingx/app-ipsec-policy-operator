@@ -130,7 +130,5 @@ func (c *ConfigurationFile) WriteFile() error {
 		fmt.Fprintln(c.File, item)
 	}
 
-	fmt.Printf("Config written to %s\n", IPsecConfFilePath)
-
 	return nil
 }

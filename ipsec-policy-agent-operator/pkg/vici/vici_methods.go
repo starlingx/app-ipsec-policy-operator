@@ -17,10 +17,12 @@ limitations under the License.
 package vici
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	govici "github.com/strongswan/govici/vici"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func CommandRequest(command string, msg *govici.Message) (*govici.Message, error) {
@@ -41,6 +43,8 @@ func CommandRequest(command string, msg *govici.Message) (*govici.Message, error
 }
 
 func LoadConnections(connections ...any) ([]*govici.Message, error) {
+	ctx := context.Background()
+	log := log.FromContext(ctx)
 	var connName string
 	results := []*govici.Message{}
 	session, err := govici.NewSession()
@@ -57,26 +61,26 @@ func LoadConnections(connections ...any) ([]*govici.Message, error) {
 			connName = conn.Name
 			c, err := govici.MarshalMessage(&conn)
 			if err != nil {
-				fmt.Println("Unable to Marshal message")
+				log.Error(err, "Unable to Marshal message")
 				break
 			}
 
 			m.Set("replace", true)
 			if err := m.Set(connName, c); err != nil {
-				fmt.Println("Unable to create message of type Connection")
+				log.Error(err, "Unable to create message of type Connection")
 				break
 			}
 		case SystemNodeConnection:
 			connName = conn.Name
 			c, err := govici.MarshalMessage(&conn)
 			if err != nil {
-				fmt.Println("Unable to Marshal message")
+				log.Error(err, "Unable to Marshal message")
 				break
 			}
 
 			m.Set("replace", true)
 			if err = m.Set(connName, c); err != nil {
-				fmt.Println("Unable to create message of type SystemNodeConnection")
+				log.Error(err, "Unable to create message of type SystemNodeConnection")
 				break
 			}
 		default:
@@ -89,12 +93,12 @@ func LoadConnections(connections ...any) ([]*govici.Message, error) {
 
 		request, _ := session.CommandRequest("load-conn", m)
 		if err := request.Err(); err != nil {
-			fmt.Printf("Failed load connection %s: %v\n", connName, request.Get("errmsg"))
+			log.Error(err, fmt.Sprintf("Failed load connection %s: %v\n", connName, request.Get("errmsg")))
 		}
 
 		results = append(results, request)
 
-		fmt.Printf("Connection loaded: %s\n", connName)
+		log.Info(fmt.Sprintf("Connection loaded: %s\n", connName))
 	}
 
 	return results, err

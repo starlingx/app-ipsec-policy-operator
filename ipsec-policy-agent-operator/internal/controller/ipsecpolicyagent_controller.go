@@ -64,18 +64,18 @@ func getNodeNameByPodName(clientObj client.Client, ctx context.Context, podName 
 // getNodeConfigMapName returns the configmap name related of this node
 func getNodeConfigMapName(clientObj client.Client) string {
 	ctx := context.Background()
-	logger := log.FromContext(ctx)
+	log := log.FromContext(ctx)
 	var nodeConfigMapName string
 
 	hostname, err := os.Hostname()
 	if err != nil {
-		logger.Error(err, "Unable to retrieve hostname. Error: ")
+		log.Error(err, "Unable to retrieve hostname. Error: ")
 		return nodeConfigMapName
 	}
 
 	nodeName, err := getNodeNameByPodName(clientObj, ctx, hostname)
 	if err != nil {
-		logger.Error(err, "Unable to retrieve node name. Error: ")
+		log.Error(err, "Unable to retrieve node name. Error: ")
 		return nodeConfigMapName
 	}
 
@@ -86,7 +86,7 @@ func getNodeConfigMapName(clientObj client.Client) string {
 
 func isConfigMapModifiedForThisNode(obj client.Object, clientObj client.Client, eventAction string) bool {
 	ctx := context.Background()
-	logger := log.FromContext(ctx)
+	log := log.FromContext(ctx)
 
 	nodeConfigMapName := getNodeConfigMapName(clientObj)
 	if obj.GetName() != nodeConfigMapName {
@@ -95,7 +95,7 @@ func isConfigMapModifiedForThisNode(obj client.Object, clientObj client.Client, 
 
 	infoMsg := fmt.Sprintf("ConfigMap %s was %s. Reconciling IPsec Policies...",
 		nodeConfigMapName, eventAction)
-	logger.Info(infoMsg)
+	log.Info(infoMsg)
 	return true
 }
 
@@ -130,7 +130,7 @@ func ipsecConfigMapPredicate(mgr ctrl.Manager) predicate.Predicate {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.17.3/pkg/reconcile
 func (r *IPsecPolicyAgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	log := log.FromContext(ctx)
 	var config *rest.Config
 	var configFile *swanctl.ConfigurationFile
 	var err error
@@ -149,7 +149,7 @@ func (r *IPsecPolicyAgentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		fmt.Println(err)
+		log.Error(err, "Error getting kubernetes config")
 		return ctrl.Result{}, err
 	}
 
@@ -157,19 +157,19 @@ func (r *IPsecPolicyAgentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	configMapResource, err := clientset.CoreV1().ConfigMaps(OperatorNamespace).Get(context.TODO(), configMapName, metav1.GetOptions{})
 	if err != nil {
-		fmt.Println("Failed to get configmap:", err)
+		log.Error(err, "Failed to get configmap")
 		return ctrl.Result{}, err
 	}
 
 	localConnData, ok := configMapResource.Data[swanctl.IPsecConfigLocalMapKey]
 	if !ok {
-		fmt.Printf("Key %s not found in configmap %s", swanctl.IPsecConfigLocalMapKey, configMapName)
+		log.Error(fmt.Errorf("Key %s not found in configmap %s", swanctl.IPsecConfigLocalMapKey, configMapName), "Error")
 		return ctrl.Result{}, err
 	}
 
 	connectionsData, ok := configMapResource.Data[swanctl.IPsecConfigConnsMapKey]
 	if !ok {
-		fmt.Printf("Key %s not found in configmap %s", swanctl.IPsecConfigConnsMapKey, configMapName)
+		log.Error(fmt.Errorf("Key %s not found in configmap %s", swanctl.IPsecConfigConnsMapKey, configMapName), "Error")
 		return ctrl.Result{}, err
 	}
 
@@ -177,13 +177,13 @@ func (r *IPsecPolicyAgentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	err = json.Unmarshal([]byte(localConnData), &configFile.LocalConn)
 	if err != nil {
-		fmt.Println("Failed to unmarshal JSON: ", err)
+		log.Error(err, "Failed to unmarshal JSON")
 		return ctrl.Result{}, err
 	}
 
 	err = json.Unmarshal([]byte(connectionsData), &configFile.Connections)
 	if err != nil {
-		fmt.Println("Failed to unmarshal JSON: ", err)
+		log.Error(err, "Failed to unmarshal JSON")
 		return ctrl.Result{}, err
 	}
 
@@ -191,7 +191,7 @@ func (r *IPsecPolicyAgentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	configFile.WriteFile()
 	configFile.LoadConnections()
 
-	fmt.Printf("Config written to %s\n", swanctl.IPsecConfFilePath)
+	log.Info(fmt.Sprintf("Config written to %s\n", swanctl.IPsecConfFilePath))
 
 	return ctrl.Result{}, nil
 }

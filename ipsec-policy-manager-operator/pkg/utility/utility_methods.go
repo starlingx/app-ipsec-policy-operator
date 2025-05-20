@@ -17,11 +17,13 @@ limitations under the License.
 package utility
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/yaml"
 
 	"starlingx.windriver.com/ipsec-policy-manager-operator/pkg/kubernetes"
@@ -148,6 +150,8 @@ func GetServicePorts(nodeName string, serviceName string, serviceNamespace strin
 // protocols/ports specified by the user. It returns a list of protocol/ports
 // that user specified in policies to protect for the service.
 func ProtectedPortsAndProtocols(serviceName string, policyPortProtocols []PortProtocol, servicePortProtocols []PortProtocol) []PortProtocol {
+	ctx := context.Background()
+	log := log.FromContext(ctx)
 	var portProtocols []PortProtocol
 	for _, policyPortProtocol := range policyPortProtocols {
 		if ContainsProtocol(servicePortProtocols, policyPortProtocol.Protocol) == true {
@@ -169,14 +173,14 @@ func ProtectedPortsAndProtocols(serviceName string, policyPortProtocols []PortPr
 								}
 							}
 						} else {
-							fmt.Printf("Service: %v - Protocol/Port: %v/%v not configured in the service\n",
-								serviceName, policyPortProtocol.Protocol, policyPort)
+							log.Info(fmt.Sprintf("Service: %v - Protocol/Port: %v/%v not configured in the service\n",
+								serviceName, policyPortProtocol.Protocol, policyPort))
 						}
 					}
 				}
 			}
 		} else {
-			fmt.Printf("Service: %v - Protocol: %v not configured in the service\n", serviceName, policyPortProtocol.Protocol)
+			log.Info(fmt.Sprintf("Service: %v - Protocol: %v not configured in the service\n", serviceName, policyPortProtocol.Protocol))
 		}
 	}
 

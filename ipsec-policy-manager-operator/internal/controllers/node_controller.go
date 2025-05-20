@@ -18,7 +18,6 @@ package controller
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -89,12 +88,12 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	// Fetch all CRs in all namespaces (NO `client.InNamespace()` filter)
 	err = r.List(ctx, &crList)
 	if err != nil {
-		fmt.Println("Error fetching CRs:", err)
+		log.Error(err, "Error fetching CRs")
 		return ctrl.Result{}, err
 	}
 
 	if len(crList.Items) == 0 {
-		fmt.Println("There are no IPsecPolicies to configure")
+		log.Info("There are no IPsecPolicies to configure")
 		log.Info("Reconciling Node complete.")
 		return ctrl.Result{}, err
 	}
@@ -110,7 +109,7 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	if nodeAdded && kubernetes.IsBlockaffinityConfigured(node.Name) == false {
-		fmt.Println("Node:", node.Name, "BlockAffinity not set yet, requeuing")
+		log.Info("BlockAffinity not set yet, requeuing", "Node", node.Name)
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
