@@ -33,7 +33,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-func (r *K8sResource) RetrieveResourceInfo() *unstructured.UnstructuredList {
+// RetrieveResourceInfo gets resource information from kubernetes and returns
+// a list with the resources and/or an error in case of failure
+func (r *K8sResource) RetrieveResourceInfo() (*unstructured.UnstructuredList, error) {
 	var config *rest.Config
 	var err error
 
@@ -52,7 +54,7 @@ func (r *K8sResource) RetrieveResourceInfo() *unstructured.UnstructuredList {
 	// Create a dynamic client
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
-		panic(err.Error())
+		return nil, fmt.Errorf("Error getting kubernetes conf: %w", err)
 	}
 
 	// Get the resource client for the given API group
@@ -67,13 +69,15 @@ func (r *K8sResource) RetrieveResourceInfo() *unstructured.UnstructuredList {
 	// Retrieve data from the resource
 	results, err := resourceClient.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		panic(err.Error())
+		return nil, fmt.Errorf("Error retrieving data from the resource: %w", err)
 	}
 
-	return results
+	return results, nil
 }
 
-func (r *K8sResource) RetrieveResourceInfoByName(name string) *unstructured.Unstructured {
+// RetrieveResourceInfoByName gets resource information from kubernetes and returns
+// the resource specified by name and/or an error in case of failure
+func (r *K8sResource) RetrieveResourceInfoByName(name string) (*unstructured.Unstructured, error) {
 	var config *rest.Config
 	var err error
 
@@ -92,7 +96,7 @@ func (r *K8sResource) RetrieveResourceInfoByName(name string) *unstructured.Unst
 	// Create a dynamic client
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
-		panic(err.Error())
+		return nil, fmt.Errorf("Error getting kubernetes conf: %w", err)
 	}
 
 	// Get the resource client for the given API group
@@ -107,10 +111,10 @@ func (r *K8sResource) RetrieveResourceInfoByName(name string) *unstructured.Unst
 	// Retrieve data from the resource
 	results, err := resourceClient.Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
-		panic(err.Error())
+		return nil, fmt.Errorf("Error retrieving data from the resource: %w", err)
 	}
 
-	return results
+	return results, nil
 }
 
 func GetNodeNameByPodName(client client.Client, ctx context.Context, podName string) (string, error) {
@@ -137,9 +141,13 @@ func GetCurrentNodeConfiguration(currentNodeName string) (NodeInfo, error) {
 			Resource:   "nodes",
 			NameSpace:  "",
 		}
-		nodes = rNode.RetrieveResourceInfo()
 		nodeInfo NodeInfo
 	)
+
+	nodes, err := rNode.RetrieveResourceInfo()
+	if err != nil {
+		return nodeInfo, err
+	}
 
 	// Print the info of the nodes
 	for _, node := range nodes.Items {
@@ -179,7 +187,10 @@ func GetCurrentNodeConfiguration(currentNodeName string) (NodeInfo, error) {
 		Resource:   "blockaffinities",
 		NameSpace:  "",
 	}
-	blockaffinities := rBlock.RetrieveResourceInfo()
+	blockaffinities, err := rBlock.RetrieveResourceInfo()
+	if err != nil {
+		return nodeInfo, err
+	}
 
 	// Print the info of the blockaffinities
 	for _, blockaffinity := range blockaffinities.Items {
@@ -220,9 +231,13 @@ func GetNodesConfiguration() (NodesInfo, error) {
 			Resource:   "nodes",
 			NameSpace:  "",
 		}
-		nodes = rNode.RetrieveResourceInfo()
 		nodesInfo NodesInfo
 	)
+
+	nodes, err := rNode.RetrieveResourceInfo()
+	if err != nil {
+		return nodesInfo, err
+	}
 
 	// Print the info of the nodes
 	for _, node := range nodes.Items {
@@ -260,7 +275,10 @@ func GetNodesConfiguration() (NodesInfo, error) {
 			Resource:   "blockaffinities",
 			NameSpace:  "",
 		}
-		blockaffinities := rBlock.RetrieveResourceInfo()
+		blockaffinities, err := rBlock.RetrieveResourceInfo()
+		if err != nil {
+			return nodesInfo, err
+		}
 
 		// Print the info of the blockaffinities
 		for _, blockaffinity := range blockaffinities.Items {
@@ -343,14 +361,18 @@ func IsBlockaffinityConfigured(nodeName string) bool {
 		Resource:   "blockaffinities",
 		NameSpace:  "",
 	}
-	blockaffinities := rBlock.RetrieveResourceInfo()
+	blockaffinities, err := rBlock.RetrieveResourceInfo()
+	if err != nil {
+		log.Error(err, "Error retrieving blockaffinities information")
+		return false
+	}
 
 	// Print the info of the blockaffinities
 	for _, blockaffinity := range blockaffinities.Items {
 		// Node
 		node, found, err := unstructured.NestedString(blockaffinity.Object, "spec", "node")
 		if err != nil {
-			log.Error(err, "Error getting blockaffinities")
+			log.Error(err, "Error getting node blockaffinities")
 			continue
 		}
 

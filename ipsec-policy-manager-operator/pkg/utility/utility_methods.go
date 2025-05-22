@@ -97,20 +97,19 @@ func GetServicePorts(nodeName string, serviceName string, serviceNamespace strin
 			Resource:   "endpoints",
 			NameSpace:  serviceNamespace,
 		}
-		endpoint      = rEndpoints.RetrieveResourceInfoByName(serviceName)
 		portProtocols []PortProtocol
 	)
 
-	if endpoint.Object == nil {
-		errMsg := fmt.Errorf("No endpoints found for service %s in namespace %s",
-			serviceName, serviceNamespace)
+	endpoint, err := rEndpoints.RetrieveResourceInfoByName(serviceName)
+	if err != nil {
+		errMsg := fmt.Errorf("Service: %s - Namespace: %s", serviceName, serviceNamespace)
 		return portProtocols, errMsg
 	}
 
 	subsets, found, err := unstructured.NestedSlice(endpoint.Object, "subsets")
 	if err != nil || !found {
-		errMsg := fmt.Errorf("Node: %s - Service: %s - Namespace: %s - error retrieving subsets: %w",
-			nodeName, serviceName, serviceNamespace, err)
+		errMsg := fmt.Errorf("Service: %s - Namespace: %s - error retrieving subsets: %w",
+			serviceName, serviceNamespace, err)
 		return portProtocols, errMsg
 	}
 
@@ -197,13 +196,12 @@ func GetServiceAddress(nodeName string, serviceName string, serviceNamespace str
 			Resource:   "endpoints",
 			NameSpace:  serviceNamespace,
 		}
-		endpoint = rEndpoints.RetrieveResourceInfoByName(serviceName)
 		serviceAddr string
 	)
 
-	if endpoint.Object == nil {
-		errMsg := fmt.Errorf("No endpoints found for service %s in namespace %s",
-			serviceName, serviceNamespace)
+	endpoint, err := rEndpoints.RetrieveResourceInfoByName(serviceName)
+	if err != nil {
+		errMsg := fmt.Errorf("Service: %s - Namespace: %s", serviceName, serviceNamespace)
 		return "", errMsg
 	}
 
