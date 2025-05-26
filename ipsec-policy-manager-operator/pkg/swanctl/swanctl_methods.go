@@ -163,7 +163,7 @@ func (c *ConfigurationFile) GetNodesConf(nodeName string, policiesList api.IPsec
 
 					if nodeServiceEndpointAddr != "" {
 						policyEgress := childName + "_egress"
-						localTS := []string{c.PodSubnet}
+						localTS := []string{c.PodSubnet + "[" + portProtocol.Protocol + "]"}
 						remoteTS := []string{}
 						for _, port := range portProtocol.Ports {
 							portsSpec := portProtocol.Protocol + "/" + fmt.Sprint(port)
@@ -187,7 +187,7 @@ func (c *ConfigurationFile) GetNodesConf(nodeName string, policiesList api.IPsec
 							portsSpec := portProtocol.Protocol + "/" + fmt.Sprint(port)
 							localTS = append(localTS, c.ServiceEndpointAddr+"["+portsSpec+"]")
 						}
-						remoteTS := []string{node.PodSubnet}
+						remoteTS := []string{node.PodSubnet + "[" + portProtocol.Protocol + "]"}
 						childIngress := &vici.ChildSA{
 							Mode:                   IngressMode,
 							StartAction:            IngressStartAction,

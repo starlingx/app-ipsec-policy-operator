@@ -39,37 +39,14 @@ func (c *ConfigurationFile) LoadConnections() error {
 	return err
 }
 
-func (c *ConfigurationFile) FormatTrafficSelectors(trafficSelectors []string) string {
-	var protPorts []string
-
-	ip := ""
-
-	for _, trafficSelector := range trafficSelectors {
-		parts := strings.SplitN(trafficSelector, "[", 2)
-		if len(parts) != 2 || !strings.HasSuffix(parts[1], "]") {
-			return trafficSelector
-		}
-
-		if ip == "" {
-			ip = parts[0]
-		}
-		protPort := strings.TrimSuffix(parts[1], "]")
-		protPorts = append(protPorts, protPort)
-	}
-
-	result := fmt.Sprintf("%s[%s]", ip, strings.Join(protPorts, ","))
-
-	return result
-}
-
 func (c *ConfigurationFile) generateChildrenSAConf(childSAs map[string]*vici.ChildSA) {
 	c.Data = append(c.Data, "\t\tchildren {")
 
 	for name, sa := range childSAs {
 		c.Data = append(c.Data, fmt.Sprintf("\t\t\t%v {", name))
 		c.Data = append(c.Data, fmt.Sprintf("\t\t\t\tstart_action = %v", sa.StartAction))
-		c.Data = append(c.Data, fmt.Sprintf("\t\t\t\tlocal_ts = %v", c.FormatTrafficSelectors(sa.LocalTrafficSelectors)))
-		c.Data = append(c.Data, fmt.Sprintf("\t\t\t\tremote_ts = %v", c.FormatTrafficSelectors(sa.RemoteTrafficSelectors)))
+		c.Data = append(c.Data, fmt.Sprintf("\t\t\t\tlocal_ts = %v", strings.Join(sa.LocalTrafficSelectors, ",")))
+		c.Data = append(c.Data, fmt.Sprintf("\t\t\t\tremote_ts = %v", strings.Join(sa.RemoteTrafficSelectors, ",")))
 		c.Data = append(c.Data, fmt.Sprintf("\t\t\t\tmode = %v", sa.Mode))
 		c.Data = append(c.Data, "\t\t\t}")
 	}
