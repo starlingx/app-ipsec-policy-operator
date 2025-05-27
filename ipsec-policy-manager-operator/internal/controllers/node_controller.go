@@ -53,12 +53,24 @@ func nodePredicate() predicate.Funcs {
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			oldNode := e.ObjectOld.(*corev1.Node)
 			newNode := e.ObjectNew.(*corev1.Node)
-			return !isNodeReady(oldNode) && isNodeReady(newNode)
+			ready := !isNodeReady(oldNode) && isNodeReady(newNode)
+			if ready {
+				log := ctrl.Log.WithName("Node")
+				log.Info("Update event detected", "name", e.ObjectNew.GetName())
+			}
+			return ready
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
-			return isNodeReady(e.Object.(*corev1.Node))
+			ready := isNodeReady(e.Object.(*corev1.Node))
+			if ready {
+				log := ctrl.Log.WithName("Node")
+				log.Info("Create event detected", "name", e.Object.GetName())
+			}
+			return ready
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
+			log := ctrl.Log.WithName("Node")
+			log.Info("Delete event detected", "name", e.Object.GetName())
 			return true
 		},
 		GenericFunc: func(e event.GenericEvent) bool {

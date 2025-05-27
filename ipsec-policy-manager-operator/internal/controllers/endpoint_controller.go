@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,7 +38,7 @@ type EndpointReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-func endpointEventReconcile(obj client.Object, client client.Client) bool {
+func endpointEventReconcile(obj client.Object, client client.Client, event string) bool {
 	ctx := context.Background()
 	log := log.FromContext(ctx)
 
@@ -50,7 +51,8 @@ func endpointEventReconcile(obj client.Object, client client.Client) bool {
 	for _, ipsecPolicyConf := range ipsecPoliciesList.Items {
 		for _, policy := range ipsecPolicyConf.Spec.Policies {
 			if obj.GetName() == policy.ServiceName {
-				log.Info("Endpoints for service was modified. Reconciling operator", "ServiceName", policy.ServiceName)
+				logMsg := fmt.Sprintf("Endpoints for service was %s. Reconciling operator", event)
+				log.Info(logMsg, "ServiceName", policy.ServiceName)
 				return true
 			}
 		}
@@ -64,13 +66,13 @@ func endpointPredicate(mgr ctrl.Manager) predicate.Funcs {
 
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return endpointEventReconcile(e.ObjectNew, client)
+			return endpointEventReconcile(e.ObjectNew, client, "updated")
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
-			return endpointEventReconcile(e.Object, client)
+			return endpointEventReconcile(e.Object, client, "created")
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return endpointEventReconcile(e.Object, client)
+			return endpointEventReconcile(e.Object, client, "deleted")
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
 			return false

@@ -22,7 +22,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	api "starlingx.windriver.com/ipsec-policy-manager-operator/api/v1"
 	"starlingx.windriver.com/ipsec-policy-manager-operator/pkg/config"
@@ -32,6 +34,29 @@ import (
 type IPsecPolicyReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+}
+
+func IPsecPolicyPredicate() predicate.Funcs {
+	return predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			log := ctrl.Log.WithName("IPsecPolicy")
+			log.Info("Update event detected", "name", e.ObjectNew.GetName())
+			return true
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			log := ctrl.Log.WithName("IPsecPolicy")
+			log.Info("Create event detected", "name", e.Object.GetName())
+			return true
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			log := ctrl.Log.WithName("IPsecPolicy")
+			log.Info("Delete event detected", "name", e.Object.GetName())
+			return true
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			return false
+		},
+	}
 }
 
 //+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
@@ -85,5 +110,6 @@ func (r *IPsecPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 func (r *IPsecPolicyReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&api.IPsecPolicy{}).
+		WithEventFilter(IPsecPolicyPredicate()).
 		Complete(r)
 }

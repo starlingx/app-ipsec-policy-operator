@@ -135,14 +135,14 @@ func (c *ConfigurationFile) GetNodesConf(nodeName string, policiesList api.IPsec
 				// Capture Service IP of the nodes
 				localServiceEndpointAddr, err := utility.GetServiceAddress(nodeName, policy.ServiceName, policy.ServiceNS)
 				if err != nil {
-					log.Error(err, "Unable to retrieve current node endpoints configuration")
+					log.Error(err, "Unable to retrieve endpoints on current node for the service", "Node", nodeName)
 					continue
 				}
 				c.ServiceEndpointAddr = localServiceEndpointAddr
 
 				nodeServiceEndpointAddr, err := utility.GetServiceAddress(node.Hostname, policy.ServiceName, policy.ServiceNS)
 				if err != nil {
-					log.Error(err, "Unable to retrieve node endpoints configuration", "Node", node.Hostname)
+					log.Error(err, "Unable to retrieve endpoints on this node for the service", "Node", node.Hostname)
 					continue
 				}
 
@@ -151,7 +151,7 @@ func (c *ConfigurationFile) GetNodesConf(nodeName string, policiesList api.IPsec
 
 				servicePortProtocols, err := utility.GetServicePorts(c.Hostname, policy.ServiceName, policy.ServiceNS)
 				if err != nil {
-					log.Error(err, "Unable to retrieve node endpoints configuration", "Node", node.Hostname)
+					log.Error(err, "Unable to retrieve service's port and protocol", "Node", node.Hostname)
 					continue
 				}
 
