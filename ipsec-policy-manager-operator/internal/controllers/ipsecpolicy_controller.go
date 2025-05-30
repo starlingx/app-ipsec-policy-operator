@@ -28,6 +28,7 @@ import (
 
 	api "starlingx.windriver.com/ipsec-policy-manager-operator/api/v1"
 	"starlingx.windriver.com/ipsec-policy-manager-operator/pkg/config"
+	"starlingx.windriver.com/ipsec-policy-manager-operator/pkg/kubernetes"
 )
 
 // IPsecPolicyReconciler reconciles a IPsecPolicy object
@@ -82,6 +83,7 @@ func (r *IPsecPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	log.Info("Reconciling IPsecPolicy custom resource")
 
 	var err error
+	var policy api.IPsecPolicy
 	var crList api.IPsecPolicyList
 
 	// Fetch all CRs in all namespaces (NO `client.InNamespace()` filter)
@@ -91,10 +93,23 @@ func (r *IPsecPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	if len(crList.Items) == 0 {
-		log.Info("There are no IPsecPolicies to configure")
-		log.Info("Reconciling IPsecPolicy custom resource complete.")
-		return ctrl.Result{}, err
+	if err = r.Get(ctx, req.NamespacedName, &policy); err != nil {
+		if client.IgnoreNotFound(err) == nil {
+			if len(crList.Items) == 0 {
+				nodesConf, err := kubernetes.GetNodesConfiguration()
+				if err != nil {
+					log.Error(err, "Unable to retrieve nodes configuration")
+					return ctrl.Result{}, err
+				}
+
+				for _, node := range nodesConf.Nodes {
+					configMapName := kubernetes.IPsecConfigMapPrefix + node.Hostname
+					kubernetes.DeleteConfigMap(r.Client, kubernetes.OperatorNamespace, configMapName)
+				}
+
+				return ctrl.Result{}, nil
+			}
+		}
 	}
 
 	if err = config.GenerateConf(r.Client, crList); err != nil {

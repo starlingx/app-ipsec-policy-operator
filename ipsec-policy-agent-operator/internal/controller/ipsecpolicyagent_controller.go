@@ -17,10 +17,12 @@ limitations under the License.
 package controller
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -84,6 +86,8 @@ func getNodeConfigMapName(clientObj client.Client) string {
 	return nodeConfigMapName
 }
 
+// isConfigMapModifiedForThisNode reports whether a configmap related to this
+// node is modified or not
 func isConfigMapModifiedForThisNode(obj client.Object, clientObj client.Client, eventAction string) bool {
 	ctx := context.Background()
 	log := log.FromContext(ctx)
@@ -99,6 +103,8 @@ func isConfigMapModifiedForThisNode(obj client.Object, clientObj client.Client, 
 	return true
 }
 
+// ipsecConfigMapPredicate reports whether the reconcile function should be
+// called or not
 func ipsecConfigMapPredicate(mgr ctrl.Manager) predicate.Predicate {
 	clientObj := mgr.GetClient()
 	return predicate.Funcs{
@@ -115,6 +121,31 @@ func ipsecConfigMapPredicate(mgr ctrl.Manager) predicate.Predicate {
 			return false
 		},
 	}
+}
+
+// getCurrentConnectionsFromIPSecConfFile returns a list with the current ipsec
+// connections loaded in the strongswan
+func getCurrentConnectionsFromIPSecConfFile() []string {
+	var connections []string
+	searchTerm := "k8s-node-"
+
+	file, err := os.Open(swanctl.IPsecConfFilePath)
+	if err != nil {
+		return connections
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.Contains(line, searchTerm) {
+			conn := strings.Split(line, "{")
+			conn[0] = strings.TrimSpace(conn[0])
+			connections = append(connections, conn[0])
+		}
+	}
+
+	return connections
 }
 
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
@@ -157,7 +188,23 @@ func (r *IPsecPolicyAgentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	configMapResource, err := clientset.CoreV1().ConfigMaps(OperatorNamespace).Get(context.TODO(), configMapName, metav1.GetOptions{})
 	if err != nil {
+		if client.IgnoreNotFound(err) == nil {
+			connections := getCurrentConnectionsFromIPSecConfFile()
+			configFile = new(swanctl.ConfigurationFile)
+			configFile.UnloadConnections(connections)
+			if err = os.Remove(swanctl.IPsecConfFilePath); err != nil {
+				log.Error(err, "Failed to delete file", "name", swanctl.IPsecConfFilePath)
+				return ctrl.Result{}, err
+			}
+
+			logMsg := fmt.Sprintf("File: %s Deleted", swanctl.IPsecConfFilePath)
+			log.Info(logMsg)
+
+			return ctrl.Result{}, nil
+		}
+
 		log.Error(err, "Failed to get configmap")
+
 		return ctrl.Result{}, err
 	}
 
@@ -187,8 +234,10 @@ func (r *IPsecPolicyAgentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
+	connections := getCurrentConnectionsFromIPSecConfFile()
 	configFile.GenerateConf()
 	configFile.WriteFile()
+	configFile.CleanConnections(connections)
 	configFile.LoadConnections()
 
 	log.Info(fmt.Sprintf("Config written to %s\n", swanctl.IPsecConfFilePath))

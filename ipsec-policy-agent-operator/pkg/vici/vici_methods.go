@@ -25,23 +25,44 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-func CommandRequest(command string, msg *govici.Message) (*govici.Message, error) {
+// TerminateConnection terminates a connection specified by a name
+func TerminateConnection(name string) error {
 	session, err := govici.NewSession()
 	if err != nil {
 		fmt.Println(err)
-		return nil, err
+		return err
 	}
 	defer session.Close()
 
-	ret, err := session.CommandRequest(command, msg)
-	if err != nil {
-		fmt.Println(err)
-		return nil, err
+	msg := govici.NewMessage()
+	msg.Set("ike", name)
+	if _, err := session.CommandRequest("terminate", msg); err != nil {
+		return fmt.Errorf("Terminate failed: %w", err)
 	}
 
-	return ret, err
+	return nil
 }
 
+// UnloadConnection unloads a connection specified by a name
+func UnloadConnection(name string) error {
+	session, err := govici.NewSession()
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	defer session.Close()
+
+	msg := govici.NewMessage()
+	msg.Set("name", name)
+
+	if _, err := session.CommandRequest("unload-conn", msg); err != nil {
+		return fmt.Errorf("Unload-conn failed: %w", err)
+	}
+
+	return nil
+}
+
+// LoadConnections loads all the connections specified by a struct connections
 func LoadConnections(connections ...any) ([]*govici.Message, error) {
 	ctx := context.Background()
 	log := log.FromContext(ctx)

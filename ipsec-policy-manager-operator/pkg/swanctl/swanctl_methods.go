@@ -69,7 +69,7 @@ func (c *ConfigurationFile) getLocalConf() {
 	conn := vici.Connection{
 		Name: "k8s-node-local",
 		Children: map[string]*vici.ChildSA{
-			"k8s-node-bypass": &(vici.ChildSA{
+			"node-local-bypass": &(vici.ChildSA{
 				Mode:                   BypassMode,
 				StartAction:            BypassStartAction,
 				LocalTrafficSelectors:  []string{c.PodSubnet},

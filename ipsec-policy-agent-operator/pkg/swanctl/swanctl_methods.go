@@ -17,14 +17,57 @@ limitations under the License.
 package swanctl
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"starlingx.windriver.com/ipsec-policy-agent/pkg/vici"
 )
 
+const LocalConn = "k8s-node-local"
+
+// UnloadConnections unloads all the connections specified by the
+// connections list
+func (c *ConfigurationFile) UnloadConnections(connections []string) {
+	ctx := context.Background()
+	log := log.FromContext(ctx)
+
+	for _, conn := range connections {
+		if err := vici.UnloadConnection(conn); err != nil {
+			logMsg := fmt.Sprintf("Connection %s: %s", conn, err.Error())
+			log.Info(logMsg)
+		}
+	}
+}
+
+// CleanConnections terminates the SAs and unloads all the connections
+// specified by the connections list
+func (c *ConfigurationFile) CleanConnections(connections []string) {
+	ctx := context.Background()
+	log := log.FromContext(ctx)
+
+	for _, conn := range connections {
+		if err := vici.TerminateConnection(conn); err != nil {
+			if conn == LocalConn {
+				continue
+			}
+
+			logMsg := fmt.Sprintf("Connection %s: %s", conn, err.Error())
+			log.Info(logMsg)
+		}
+
+		if err := vici.UnloadConnection(conn); err != nil {
+			logMsg := fmt.Sprintf("Connection %s: %s", conn, err.Error())
+			log.Info(logMsg)
+		}
+	}
+}
+
+// LoadConnections loads all the connections from the struct obtained
+// by the configmap
 func (c *ConfigurationFile) LoadConnections() error {
 	var err error
 
@@ -39,6 +82,8 @@ func (c *ConfigurationFile) LoadConnections() error {
 	return err
 }
 
+// generateChildrenSAConf generates children SAs configuration to be written in
+// the IPSec conf file
 func (c *ConfigurationFile) generateChildrenSAConf(childSAs map[string]*vici.ChildSA) {
 	c.Data = append(c.Data, "\t\tchildren {")
 
@@ -54,6 +99,8 @@ func (c *ConfigurationFile) generateChildrenSAConf(childSAs map[string]*vici.Chi
 	c.Data = append(c.Data, "\t\t}")
 }
 
+// GenerateConf generates the IPSec configuration to be written in the IPSec
+// conf file
 func (c *ConfigurationFile) GenerateConf() error {
 	var err error
 
@@ -94,6 +141,8 @@ func (c *ConfigurationFile) GenerateConf() error {
 	return err
 }
 
+// WriteFile writes the IPSec configuration file
+// in the specific directory
 func (c *ConfigurationFile) WriteFile() error {
 	var err error
 	c.File, err = os.Create(IPsecConfFilePath)
