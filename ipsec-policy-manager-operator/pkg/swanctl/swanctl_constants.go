@@ -29,21 +29,21 @@ const (
 
 	ReauthTime           int    = 14400
 	RekeyTime            int    = 3600
-	Unique               string = "never"
+	Unique               string = "replace"
 	LocalOptsAuth        string = "pubkey"
 	RemoteOptsID         string = "CN=*"
 	RemoteOptsAuth       string = "pubkey"
 
 	EgressMode           string = "tunnel"
-	EgressStartAction    string = "start"
+	EgressStartAction    string = "trap"
 	EgressUpdown         string = "/usr/lib/ipsec/_updown iptables"
 
 	IngressMode          string = "tunnel"
-	IngressStartAction   string = "start"
+	IngressStartAction   string = "trap"
 	IngressUpdown        string = "/usr/lib/ipsec/_updown iptables"
 
 	ProtocolMode         string = "tunnel"
-	ProtocolStartAction  string = "start"
+	ProtocolStartAction  string = "trap"
 	ProtocolUpdown       string = "/usr/lib/ipsec/_updown iptables"
 
 	BypassMode           string = "pass"
