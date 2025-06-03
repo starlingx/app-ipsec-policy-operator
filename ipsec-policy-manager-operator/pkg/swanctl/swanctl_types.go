@@ -22,12 +22,12 @@ import (
 )
 
 type ConfigurationFile struct {
-	LocalConn           []vici.Connection
-	Connections         []vici.SystemNodeConnection
-	File                *os.File
-	Data                []string
-	Hostname            string
-	PodSubnet           string
-	ClusterHostAddr     string
-	ServiceEndpointAddr string
+	LocalConn                []vici.Connection
+	Connections              []vici.SystemNodeConnection
+	File                     *os.File
+	Data                     []string
+	Hostname                 string
+	PodSubnet                string
+	ClusterHostAddr          string
+	ServiceEndpointAddresses []string
 }

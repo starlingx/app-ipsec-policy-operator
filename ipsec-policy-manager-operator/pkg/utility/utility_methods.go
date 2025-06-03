@@ -187,8 +187,8 @@ func ProtectedPortsAndProtocols(serviceName string, policyPortProtocols []PortPr
 }
 
 // GetServiceAddress gets the Service Endpoint IP address for a specific
-// Node using the service's Name and Namespace. It returns a string with the IP address.
-func GetServiceAddress(nodeName string, serviceName string, serviceNamespace string) (string, error) {
+// Node using the service's Name and Namespace. It returns a list of IP addresses.
+func GetServiceAddresses(nodeName string, serviceName string, serviceNamespace string) ([]string, error) {
 	var (
 		rEndpoints = kubernetes.K8sResource {
 			ApiGroup:   "",
@@ -196,20 +196,20 @@ func GetServiceAddress(nodeName string, serviceName string, serviceNamespace str
 			Resource:   "endpoints",
 			NameSpace:  serviceNamespace,
 		}
-		serviceAddr string
 	)
+	serviceAddresses := []string{}
 
 	endpoint, err := rEndpoints.RetrieveResourceInfoByName(serviceName)
 	if err != nil {
 		errMsg := fmt.Errorf("Service: %s - Namespace: %s", serviceName, serviceNamespace)
-		return "", errMsg
+		return serviceAddresses, errMsg
 	}
 
 	subsets, found, err := unstructured.NestedSlice(endpoint.Object, "subsets")
 	if err != nil || !found {
 		errMsg := fmt.Errorf("Node: %s - Service: %s - Namespace: %s - error retrieving subsets: %w",
 			nodeName, serviceName, serviceNamespace, err)
-		return "", errMsg
+		return serviceAddresses, errMsg
 	}
 
 	for _, subset := range subsets {
@@ -220,7 +220,7 @@ func GetServiceAddress(nodeName string, serviceName string, serviceNamespace str
 				if addrMap, ret := addr.(map[string]interface{}); ret {
 					if ndName, ret := addrMap["nodeName"].(string); ret {
 						if ip, ret := addrMap["ip"].(string); ret && nodeName == ndName {
-							serviceAddr = ip
+							serviceAddresses = append(serviceAddresses, ip)
 						}
 					}
 				}
@@ -228,5 +228,5 @@ func GetServiceAddress(nodeName string, serviceName string, serviceNamespace str
 		}
 	}
 
-	return serviceAddr, nil
+	return serviceAddresses, nil
 }
