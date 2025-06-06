@@ -133,18 +133,22 @@ func (c *ConfigurationFile) GetNodesConf(nodeName string, policiesList api.IPsec
 			// List of policies
 			for _, policy := range policies.Spec.Policies {
 				// Capture Service IP of the nodes
-				localServiceEndpointAddr, err := utility.GetServiceAddress(nodeName, policy.ServiceName, policy.ServiceNS)
+				localServiceEndpointAddresses, err := utility.GetServiceAddresses(nodeName, policy.ServiceName, policy.ServiceNS)
 				if err != nil {
 					log.Error(err, "Unable to retrieve endpoints on current node for the service", "Node", nodeName)
 					continue
 				}
-				c.ServiceEndpointAddr = localServiceEndpointAddr
+				log.Info(fmt.Sprintf("Endpoints on current node: %s for service: %s in namespace: %s: %v\n",
+				         nodeName, policy.ServiceName, policy.ServiceNS, localServiceEndpointAddresses))
+				c.ServiceEndpointAddresses = localServiceEndpointAddresses
 
-				nodeServiceEndpointAddr, err := utility.GetServiceAddress(node.Hostname, policy.ServiceName, policy.ServiceNS)
+				nodeServiceEndpointAddresses, err := utility.GetServiceAddresses(node.Hostname, policy.ServiceName, policy.ServiceNS)
 				if err != nil {
 					log.Error(err, "Unable to retrieve endpoints on this node for the service", "Node", node.Hostname)
 					continue
 				}
+				log.Info(fmt.Sprintf("Endpoints on node: %s for service: %s in namespace: %s: %v\n",
+				         node.Hostname, policy.ServiceName, policy.ServiceNS, nodeServiceEndpointAddresses))
 
 				// ServicePorts: udp/XXXX,tcp/XXXX
 				policyPortProtocols := utility.GetPolicyPorts(policy.ServicePorts)
@@ -161,13 +165,17 @@ func (c *ConfigurationFile) GetNodesConf(nodeName string, policiesList api.IPsec
 				for _, portProtocol := range portProtocols {
 					childName := fmt.Sprintf("%v_%v", portProtocol.Protocol, policy.ServiceName)
 
-					if nodeServiceEndpointAddr != "" {
+					if len(nodeServiceEndpointAddresses) > 0 {
 						policyEgress := childName + "_egress"
 						localTS := []string{c.PodSubnet + "[" + portProtocol.Protocol + "]"}
 						remoteTS := []string{}
-						for _, port := range portProtocol.Ports {
-							portsSpec := portProtocol.Protocol + "/" + fmt.Sprint(port)
-							remoteTS = append(remoteTS, nodeServiceEndpointAddr+"["+portsSpec+"]")
+
+						// loop through all the endpoints on this node
+						for _, nodeServiceEndpointAddr := range nodeServiceEndpointAddresses {
+							for _, port := range portProtocol.Ports {
+								portsSpec := portProtocol.Protocol + "/" + fmt.Sprint(port)
+								remoteTS = append(remoteTS, nodeServiceEndpointAddr+"["+portsSpec+"]")
+							}
 						}
 
 						childEgress := &vici.ChildSA{
@@ -180,14 +188,19 @@ func (c *ConfigurationFile) GetNodesConf(nodeName string, policiesList api.IPsec
 						nodeConnection.Children[policyEgress] = childEgress
 					}
 
-					if c.ServiceEndpointAddr != "" {
+					if len(c.ServiceEndpointAddresses) > 0 {
 						policyIngress := childName + "_ingress"
 						localTS := []string{}
-						for _, port := range portProtocol.Ports {
-							portsSpec := portProtocol.Protocol + "/" + fmt.Sprint(port)
-							localTS = append(localTS, c.ServiceEndpointAddr+"["+portsSpec+"]")
-						}
 						remoteTS := []string{node.PodSubnet + "[" + portProtocol.Protocol + "]"}
+
+						// loop through all the endpoints on the current node
+						for _, serviceEndpointAddr := range c.ServiceEndpointAddresses {
+							for _, port := range portProtocol.Ports {
+								portsSpec := portProtocol.Protocol + "/" + fmt.Sprint(port)
+								localTS = append(localTS, serviceEndpointAddr+"["+portsSpec+"]")
+							}
+						}
+
 						childIngress := &vici.ChildSA{
 							Mode:                   IngressMode,
 							StartAction:            IngressStartAction,
