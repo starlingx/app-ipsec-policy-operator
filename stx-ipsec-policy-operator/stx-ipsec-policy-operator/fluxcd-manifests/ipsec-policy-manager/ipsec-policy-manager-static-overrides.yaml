@@ -8,5 +8,5 @@ controllerManager:
   manager:
     image:
       repository: docker.io/starlingx/stx-ipsec-policy-manager-operator
-      tag: master-debian-stable-latest
+      tag: stx.11.0-v0.1.0
     replicas: 1
