@@ -29,20 +29,6 @@ import (
 
 const LocalConn = "k8s-node-local"
 
-// UnloadConnections unloads all the connections specified by the
-// connections list
-func (c *ConfigurationFile) UnloadConnections(connections []string) {
-	ctx := context.Background()
-	log := log.FromContext(ctx)
-
-	for _, conn := range connections {
-		if err := vici.UnloadConnection(conn); err != nil {
-			logMsg := fmt.Sprintf("Connection %s: %s", conn, err.Error())
-			log.Info(logMsg)
-		}
-	}
-}
-
 // CleanConnections terminates the SAs and unloads all the connections
 // specified by the connections list
 func (c *ConfigurationFile) CleanConnections(connections []string) {
@@ -50,18 +36,16 @@ func (c *ConfigurationFile) CleanConnections(connections []string) {
 	log := log.FromContext(ctx)
 
 	for _, conn := range connections {
-		if err := vici.TerminateConnection(conn); err != nil {
-			if conn == LocalConn {
-				continue
+		if conn != LocalConn {
+			if err := vici.TerminateConnection(conn); err != nil {
+				logMsg := fmt.Sprintf("Warning: Connection %s: %s", conn, err.Error())
+				log.Info(logMsg)
 			}
-
-			logMsg := fmt.Sprintf("Connection %s: %s", conn, err.Error())
-			log.Info(logMsg)
 		}
 
 		if err := vici.UnloadConnection(conn); err != nil {
-			logMsg := fmt.Sprintf("Connection %s: %s", conn, err.Error())
-			log.Info(logMsg)
+			errMsg := fmt.Sprintf("Connection %s", conn)
+			log.Error(err, errMsg)
 		}
 	}
 }

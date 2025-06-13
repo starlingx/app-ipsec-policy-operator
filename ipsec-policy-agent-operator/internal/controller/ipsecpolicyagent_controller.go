@@ -191,7 +191,7 @@ func (r *IPsecPolicyAgentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		if client.IgnoreNotFound(err) == nil {
 			connections := getCurrentConnectionsFromIPSecConfFile()
 			configFile = new(swanctl.ConfigurationFile)
-			configFile.UnloadConnections(connections)
+			configFile.CleanConnections(connections)
 			if err = os.Remove(swanctl.IPsecConfFilePath); err != nil {
 				log.Error(err, "Failed to delete file", "name", swanctl.IPsecConfFilePath)
 				return ctrl.Result{}, err
