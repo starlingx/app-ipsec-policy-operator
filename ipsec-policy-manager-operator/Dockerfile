@@ -15,6 +15,7 @@ RUN go mod download
 COPY cmd/main.go cmd/main.go
 COPY api/ api/
 COPY internal/controllers/ internal/controllers/
+COPY internal/webhook/ internal/webhook/
 COPY pkg/ pkg/
 
 # Build
