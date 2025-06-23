@@ -86,8 +86,14 @@ spec:
           name: ipsec-dir
         - mountPath: /var/run/charon.vici
           name: vici-unix-socket
+      {{- with .Values.controllerManager.nodeSelector }}
       nodeSelector:
-        ipsec-policy-agent-operator: enabled
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.controllerManager.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       securityContext:
         runAsGroup: 0
         runAsUser: 0

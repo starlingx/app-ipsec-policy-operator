@@ -7,3 +7,12 @@ controllerManager:
     image:
       repository: docker.io/starlingx/stx-ipsec-policy-agent-operator
       tag: master-debian-stable-latest
+  nodeSelector:
+    ipsec-policy-agent-operator: enabled
+  tolerations:
+    - key: "node-role.kubernetes.io/master"
+      operator: "Exists"
+      effect: "NoSchedule"
+    - key: "node-role.kubernetes.io/control-plane"
+      operator: "Exists"
+      effect: "NoSchedule"
