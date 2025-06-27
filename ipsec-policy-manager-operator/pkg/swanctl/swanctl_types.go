@@ -27,7 +27,7 @@ type ConfigurationFile struct {
 	File                     *os.File
 	Data                     []string
 	Hostname                 string
-	PodSubnet                string
-	ClusterHostAddr          string
+	PodSubnet                []string
+	ClusterHostAddr          []string
 	ServiceEndpointAddresses []string
 }

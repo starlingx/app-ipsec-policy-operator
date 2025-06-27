@@ -16,6 +16,7 @@ rules:
   resources:
   - endpoints
   - pods
+  - services
   verbs:
   - get
   - list
@@ -39,6 +40,14 @@ rules:
   verbs:
   - get
   - list
+- apiGroups:
+  - discovery.k8s.io
+  resources:
+  - endpointslices
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - starlingx.windriver.com
   resources:

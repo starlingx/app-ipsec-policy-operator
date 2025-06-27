@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,15 +30,16 @@ import (
 
 	api "starlingx.windriver.com/ipsec-policy-manager-operator/api/v1"
 	"starlingx.windriver.com/ipsec-policy-manager-operator/pkg/config"
+	"starlingx.windriver.com/ipsec-policy-manager-operator/pkg/kubernetes"
 )
 
-// EndpointReconciler reconciles a Node object
-type EndpointReconciler struct {
+// EndpointSliceReconciler reconciles a Node object
+type EndpointSliceReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
 
-func endpointEventReconcile(obj client.Object, client client.Client, event string) bool {
+func endpointSliceEventReconcile(obj client.Object, client client.Client, event string) bool {
 	ctx := context.Background()
 	log := log.FromContext(ctx)
 
@@ -48,10 +49,12 @@ func endpointEventReconcile(obj client.Object, client client.Client, event strin
 		return false
 	}
 
+	objServiceName := (obj.GetLabels())[kubernetes.EndpointSliceServiceNameLabel]
+
 	for _, ipsecPolicyConf := range ipsecPoliciesList.Items {
 		for _, policy := range ipsecPolicyConf.Spec.Policies {
-			if obj.GetName() == policy.ServiceName {
-				logMsg := fmt.Sprintf("Endpoints for service was %s. Reconciling operator", event)
+			if objServiceName == policy.ServiceName {
+				logMsg := fmt.Sprintf("EndpointSlices for service was %s. Reconciling operator", event)
 				log.Info(logMsg, "ServiceName", policy.ServiceName)
 				return true
 			}
@@ -61,18 +64,18 @@ func endpointEventReconcile(obj client.Object, client client.Client, event strin
 	return false
 }
 
-func endpointPredicate(mgr ctrl.Manager) predicate.Funcs {
+func endpointSlicePredicate(mgr ctrl.Manager) predicate.Funcs {
 	client := mgr.GetClient()
 
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return endpointEventReconcile(e.ObjectNew, client, "updated")
+			return endpointSliceEventReconcile(e.ObjectNew, client, "updated")
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
-			return endpointEventReconcile(e.Object, client, "created")
+			return endpointSliceEventReconcile(e.Object, client, "created")
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return endpointEventReconcile(e.Object, client, "deleted")
+			return endpointSliceEventReconcile(e.Object, client, "deleted")
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
 			return false
@@ -89,9 +92,9 @@ func endpointPredicate(mgr ctrl.Manager) predicate.Funcs {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.17.3/pkg/reconcile
-func (r *EndpointReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *EndpointSliceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
-	log.Info("Reconciling Endpoint")
+	log.Info("Reconciling EndpointSlice")
 
 	var err error
 	var crList api.IPsecPolicyList
@@ -107,15 +110,15 @@ func (r *EndpointReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, err
 	}
 
-	log.Info("Reconciling Endpoint complete.")
+	log.Info("Reconciling EndpointSlice complete.")
 
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *EndpointReconciler) SetupEndpointManager(mgr ctrl.Manager) error {
+func (r *EndpointSliceReconciler) SetupEndpointSliceManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&corev1.Endpoints{}).
-		WithEventFilter(endpointPredicate(mgr)).
+		For(&discoveryv1.EndpointSlice{}).
+		WithEventFilter(endpointSlicePredicate(mgr)).
 		Complete(r)
 }

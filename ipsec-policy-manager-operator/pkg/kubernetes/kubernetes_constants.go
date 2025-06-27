@@ -17,7 +17,8 @@ limitations under the License.
 package kubernetes
 
 const (
-	IPsecConfigMapPrefix  string = "system-ipsec-configmap-"
-	OperatorNamespace     string = "ipsec-policy-operator"
-	KubernetesServiceHost string = "KUBERNETES_SERVICE_HOST"
+	IPsecConfigMapPrefix          string = "system-ipsec-configmap-"
+	OperatorNamespace             string = "ipsec-policy-operator"
+	KubernetesServiceHost         string = "KUBERNETES_SERVICE_HOST"
+	EndpointSliceServiceNameLabel string = "kubernetes.io/service-name"
 )

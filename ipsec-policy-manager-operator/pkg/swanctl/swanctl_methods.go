@@ -67,19 +67,26 @@ func (c *ConfigurationFile) MarshalConnections() string {
 }
 
 func (c *ConfigurationFile) getLocalConf() {
-	conn := vici.Connection{
-		Name: "k8s-node-local",
-		Children: map[string]*vici.ChildSA{
-			"node-local-bypass": &(vici.ChildSA{
-				Mode:                   BypassMode,
-				StartAction:            BypassStartAction,
-				LocalTrafficSelectors:  []string{c.PodSubnet},
-				RemoteTrafficSelectors: []string{c.PodSubnet},
-			}),
-		},
-	}
+	for _, podSubnet := range c.PodSubnet {
+		conn := vici.Connection{
+			Children: map[string]*vici.ChildSA{
+				"node-local-bypass": &(vici.ChildSA{
+					Mode:                   BypassMode,
+					StartAction:            BypassStartAction,
+					LocalTrafficSelectors:  []string{podSubnet},
+					RemoteTrafficSelectors: []string{podSubnet},
+				}),
+			},
+		}
 
-	c.LocalConn = append(c.LocalConn, conn)
+		if utility.GetIPVersion(podSubnet) == "IPv4" {
+			conn.Name = "k8s-node-local"
+		} else {
+			conn.Name = "k8s-node-local-ipv6"
+		}
+
+		c.LocalConn = append(c.LocalConn, conn)
+	}
 }
 
 func (c *ConfigurationFile) GetNodesConf(nodeName string, policiesList api.IPsecPolicyList) error {
@@ -98,143 +105,167 @@ func (c *ConfigurationFile) GetNodesConf(nodeName string, policiesList api.IPsec
 	if err != nil {
 		return fmt.Errorf("unable to retrive nodes configuration. %w", err)
 	}
+
 	for _, node := range nodesConf.Nodes {
 		if node.Hostname == c.Hostname {
 			c.getLocalConf()
 			continue
 		}
 
-		nodeConnection := vici.SystemNodeConnection{
-			Name:        "k8s-node-" + node.Hostname,
-			ReauthTime:  ReauthTime,
-			RekeyTime:   RekeyTime,
-			Unique:      Unique,
-			LocalAddrs:  []string{c.ClusterHostAddr},
-			RemoteAddrs: []string{node.ClusterHostAddr},
-			Local: &vici.LocalOpts{
-				Auth: LocalOptsAuth,
-				Cert: &vici.CertBlock{
-					File: IPsecCertPath + CertificatePrefix + c.Hostname + CertificateExtension,
+		for _, clusterAddress := range c.ClusterHostAddr {
+			ipVersion := utility.GetIPVersion(clusterAddress)
+			nodeConnection := vici.SystemNodeConnection{
+				ReauthTime:  ReauthTime,
+				RekeyTime:   RekeyTime,
+				Unique:      Unique,
+				LocalAddrs:  []string{clusterAddress},
+				RemoteAddrs: []string{utility.GetClusterHostIP(node.ClusterHostAddr, ipVersion)},
+				Local: &vici.LocalOpts{
+					Auth: LocalOptsAuth,
+					Cert: &vici.CertBlock{
+						File: IPsecCertPath + CertificatePrefix + c.Hostname + CertificateExtension,
+					},
 				},
-			},
-			Remote: &vici.RemoteOpts{
-				ID:   RemoteOptsID,
-				Auth: RemoteOptsAuth,
-				CACert0: &vici.CertBlock{
-					File: IPsecCertCAPath + SystemLocalCACert0,
+				Remote: &vici.RemoteOpts{
+					ID:   RemoteOptsID,
+					Auth: RemoteOptsAuth,
+					CACert0: &vici.CertBlock{
+						File: IPsecCertCAPath + SystemLocalCACert0,
+					},
+					CACert1: &vici.CertBlock{
+						File: IPsecCertCAPath + SystemLocalCACert1,
+					},
 				},
-				CACert1: &vici.CertBlock{
-					File: IPsecCertCAPath + SystemLocalCACert1,
-				},
-			},
-		}
+			}
 
-		nodeConnection.Children = make(map[string]*vici.ChildSA)
-		for _, policies := range policiesList.Items {
-			// List of policies
-			for _, policy := range policies.Spec.Policies {
-				// Capture Service IP of the nodes
-				localServiceEndpointAddresses, err := utility.GetServiceAddresses(nodeName, policy.ServiceName, policy.ServiceNS)
-				if err != nil {
-					if client.IgnoreNotFound(err) == nil {
-						log.Info("Warning: Service not found", "Node", node.Hostname,
-								"Service", policy.ServiceName, "Namespace", policy.ServiceNS)
+			if ipVersion == "IPv6" {
+				nodeConnection.Name = fmt.Sprintf("k8s-node-%s-ipv6", node.Hostname)
+			} else {
+				nodeConnection.Name = fmt.Sprintf("k8s-node-%s", node.Hostname)
+			}
+
+			nodeConnection.Children = make(map[string]*vici.ChildSA)
+			for _, policies := range policiesList.Items {
+				// List of policies
+				for _, policy := range policies.Spec.Policies {
+					// Check service IP family
+					ipFamilies, err := utility.GetServiceIPFamilies(policy.ServiceName, policy.ServiceNS)
+					if err != nil {
+						log.Info("Warning: IP Families not found", "Node", node.Hostname, "Service",
+						            policy.ServiceName, "Namespace", policy.ServiceNS, "IP Version", ipVersion)
+					} else if len(ipFamilies) == 1 && ipFamilies[0] != ipVersion {
 						continue
 					}
-					log.Error(err, "Unable to retrieve endpoints on current node for the service", "Node", node.Hostname,
-							"Service", policy.ServiceName, "namespace", policy.ServiceNS)
-					continue
-				}
-				log.Info(fmt.Sprintf("Endpoints on current node: %s for service: %s in namespace: %s: %v\n",
-				         nodeName, policy.ServiceName, policy.ServiceNS, localServiceEndpointAddresses))
-				c.ServiceEndpointAddresses = localServiceEndpointAddresses
 
-				nodeServiceEndpointAddresses, err := utility.GetServiceAddresses(node.Hostname, policy.ServiceName, policy.ServiceNS)
-				if err != nil {
-					if client.IgnoreNotFound(err) == nil {
-						log.Info("Warning: Service not found", "Node", node.Hostname,
-								"Service", policy.ServiceName, "Namespace", policy.ServiceNS)
+					// Capture Service IP of the nodes
+					localServiceEndpointAddresses, err := utility.GetServiceAddresses(nodeName, policy.ServiceName, policy.ServiceNS, ipVersion)
+					if err != nil {
+						if client.IgnoreNotFound(err) == nil {
+							log.Info("Warning: Service not found", "Node", node.Hostname,
+									"Service", policy.ServiceName, "Namespace", policy.ServiceNS)
+							continue
+						}
+						log.Error(err, "Unable to retrieve endpoints on current node for the service", "Node", node.Hostname,
+								"Service", policy.ServiceName, "namespace", policy.ServiceNS)
 						continue
 					}
-					log.Error(err, "Unable to retrieve endpoints on this node for the service", "Node", node.Hostname,
-							"Service", policy.ServiceName, "namespace", policy.ServiceNS)
-					continue
-				}
-				log.Info(fmt.Sprintf("Endpoints on node: %s for service: %s in namespace: %s: %v\n",
-				         node.Hostname, policy.ServiceName, policy.ServiceNS, nodeServiceEndpointAddresses))
+					log.Info(fmt.Sprintf("Endpoints on current node: %s for service: %s in namespace: %s: %v\n",
+							nodeName, policy.ServiceName, policy.ServiceNS, localServiceEndpointAddresses))
+					c.ServiceEndpointAddresses = localServiceEndpointAddresses
 
-				// ServicePorts: udp/XXXX,tcp/XXXX
-				policyPortProtocols := utility.GetPolicyPorts(policy.ServicePorts)
-
-				servicePortProtocols, err := utility.GetServicePorts(policy.ServiceName, policy.ServiceNS)
-				if err != nil {
-					if client.IgnoreNotFound(err) == nil {
-						log.Info("Warning: Service not found", "Node", node.Hostname,
-								"Service", policy.ServiceName, "Namespace", policy.ServiceNS)
+					nodeServiceEndpointAddresses, err := utility.GetServiceAddresses(node.Hostname, policy.ServiceName, policy.ServiceNS, ipVersion)
+					if err != nil {
+						if client.IgnoreNotFound(err) == nil {
+							log.Info("Warning: Service not found", "Node", node.Hostname,
+									"Service", policy.ServiceName, "Namespace", policy.ServiceNS)
+							continue
+						}
+						log.Error(err, "Unable to retrieve endpoints on this node for the service", "Node", node.Hostname,
+								"Service", policy.ServiceName, "namespace", policy.ServiceNS)
 						continue
 					}
-					log.Error(err, "Unable to retrieve service's port and protocol", "Node", node.Hostname,
-							"Service", policy.ServiceName, "namespace", policy.ServiceNS)
-					continue
-				}
+					log.Info(fmt.Sprintf("Endpoints on node: %s for service: %s in namespace: %s: %v\n",
+							node.Hostname, policy.ServiceName, policy.ServiceNS, nodeServiceEndpointAddresses))
 
-				portProtocols := utility.ProtectedPortsAndProtocols(policy.ServiceName, policyPortProtocols, servicePortProtocols)
+					// ServicePorts: udp/XXXX,tcp/XXXX
+					policyPortProtocols := utility.GetPolicyPorts(policy.ServicePorts)
 
-				// ChildrenName: udp_serviceName_[egress|ingress]
-				for _, portProtocol := range portProtocols {
-					childName := fmt.Sprintf("%v_%v", portProtocol.Protocol, policy.ServiceName)
+					servicePortProtocols, err := utility.GetServicePorts(policy.ServiceName, policy.ServiceNS)
+					if err != nil {
+						if client.IgnoreNotFound(err) == nil {
+							log.Info("Warning: Service not found", "Node", node.Hostname,
+									"Service", policy.ServiceName, "Namespace", policy.ServiceNS)
+							continue
+						}
+						log.Error(err, "Unable to retrieve service's port and protocol", "Node", node.Hostname,
+								"Service", policy.ServiceName, "namespace", policy.ServiceNS)
+						continue
+					}
 
-					if len(nodeServiceEndpointAddresses) > 0 {
-						policyEgress := childName + "_egress"
-						localTS := []string{c.PodSubnet + "[" + portProtocol.Protocol + "]"}
-						remoteTS := []string{}
+					portProtocols := utility.ProtectedPortsAndProtocols(policy.ServiceName, policyPortProtocols, servicePortProtocols)
 
-						// loop through all the endpoints on this node
-						for _, nodeServiceEndpointAddr := range nodeServiceEndpointAddresses {
-							for _, port := range portProtocol.Ports {
-								portsSpec := portProtocol.Protocol + "/" + fmt.Sprint(port)
-								remoteTS = append(remoteTS, nodeServiceEndpointAddr+"["+portsSpec+"]")
+					// ChildrenName: udp_serviceName_[egress|ingress]
+					for _, portProtocol := range portProtocols {
+						childName := fmt.Sprintf("%v_%v", portProtocol.Protocol, policy.ServiceName)
+
+						if len(nodeServiceEndpointAddresses) > 0 {
+							policyEgress := childName + "_egress"
+							podSubnet := utility.GetPodSubnet(c.PodSubnet, ipVersion)
+							trafficSelector := fmt.Sprintf("%s[%s]", podSubnet, portProtocol.Protocol)
+
+							localTS := []string{trafficSelector}
+							remoteTS := []string{}
+
+							// loop through all the endpoints on this node
+							for _, nodeServiceEndpointAddr := range nodeServiceEndpointAddresses {
+								for _, port := range portProtocol.Ports {
+									portsSpec := portProtocol.Protocol + "/" + fmt.Sprint(port)
+									remoteTS = append(remoteTS, nodeServiceEndpointAddr+"["+portsSpec+"]")
+								}
 							}
-						}
 
-						childEgress := &vici.ChildSA{
-							Mode:                   EgressMode,
-							StartAction:            EgressStartAction,
-							LocalTrafficSelectors:  localTS,
-							RemoteTrafficSelectors: remoteTS,
-							Updown:                 EgressUpdown,
-						}
-						nodeConnection.Children[policyEgress] = childEgress
-					}
-
-					if len(c.ServiceEndpointAddresses) > 0 {
-						policyIngress := childName + "_ingress"
-						localTS := []string{}
-						remoteTS := []string{node.PodSubnet + "[" + portProtocol.Protocol + "]"}
-
-						// loop through all the endpoints on the current node
-						for _, serviceEndpointAddr := range c.ServiceEndpointAddresses {
-							for _, port := range portProtocol.Ports {
-								portsSpec := portProtocol.Protocol + "/" + fmt.Sprint(port)
-								localTS = append(localTS, serviceEndpointAddr+"["+portsSpec+"]")
+							childEgress := &vici.ChildSA{
+								Mode:                   EgressMode,
+								StartAction:            EgressStartAction,
+								LocalTrafficSelectors:  localTS,
+								RemoteTrafficSelectors: remoteTS,
+								Updown:                 EgressUpdown,
 							}
+							nodeConnection.Children[policyEgress] = childEgress
 						}
 
-						childIngress := &vici.ChildSA{
-							Mode:                   IngressMode,
-							StartAction:            IngressStartAction,
-							LocalTrafficSelectors:  localTS,
-							RemoteTrafficSelectors: remoteTS,
-							Updown:                 IngressUpdown,
+						if len(c.ServiceEndpointAddresses) > 0 {
+							policyIngress := childName + "_ingress"
+							podSubnet := utility.GetPodSubnet(node.PodSubnet, ipVersion)
+							trafficSelector := fmt.Sprintf("%s[%s]", podSubnet, portProtocol.Protocol)
+
+							localTS := []string{}
+							remoteTS := []string{trafficSelector}
+
+							// loop through all the endpoints on the current node
+							for _, serviceEndpointAddr := range c.ServiceEndpointAddresses {
+								for _, port := range portProtocol.Ports {
+									portsSpec := portProtocol.Protocol + "/" + fmt.Sprint(port)
+									localTS = append(localTS, serviceEndpointAddr+"["+portsSpec+"]")
+								}
+							}
+
+							childIngress := &vici.ChildSA{
+								Mode:                   IngressMode,
+								StartAction:            IngressStartAction,
+								LocalTrafficSelectors:  localTS,
+								RemoteTrafficSelectors: remoteTS,
+								Updown:                 IngressUpdown,
+							}
+							nodeConnection.Children[policyIngress] = childIngress
 						}
-						nodeConnection.Children[policyIngress] = childIngress
 					}
 				}
 			}
-		}
 
-		if len(nodeConnection.Children) > 0 {
-			c.Connections = append(c.Connections, nodeConnection)
+			if len(nodeConnection.Children) > 0 {
+				c.Connections = append(c.Connections, nodeConnection)
+			}
 		}
 	}
 

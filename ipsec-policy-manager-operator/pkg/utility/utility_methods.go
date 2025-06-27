@@ -19,6 +19,7 @@ package utility
 import (
 	"context"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 
@@ -29,13 +30,45 @@ import (
 	"starlingx.windriver.com/ipsec-policy-manager-operator/pkg/kubernetes"
 )
 
-// Convert a struct into YAML format
+// GetYamlConf converts a struct into YAML format
 func GetYamlConf(data interface{}) (string, error) {
 	yamlData, err := yaml.Marshal(data)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal struct to YAML: %w", err)
 	}
 	return string(yamlData), nil
+}
+
+// GetIPVersion returns the IP version of an address
+func GetIPVersion(address string) string {
+	internalIP := net.ParseIP(strings.Split(address, "/")[0])
+	if internalIP.To4() != nil {
+		return "IPv4"
+	}
+	return "IPv6"
+}
+
+// GetClusterHostIP gets the IP address from a string slice of Cluster Host
+// IP addresses based on the IP version
+func GetClusterHostIP(clusterHostAddrs []string, ipVersion string) string {
+	for _, ipAddress := range clusterHostAddrs {
+		if GetIPVersion(ipAddress) == ipVersion {
+			return ipAddress
+		}
+	}
+	return ""
+}
+
+// GetPodSubnet gets the IP address from a string slice of Pod Subnets
+// based on the IP version
+func GetPodSubnet(podSubnet []string, ipVersion string) string {
+	for _, subnet := range podSubnet {
+		address := strings.Split(subnet, "/")
+		if GetIPVersion(address[0]) == ipVersion {
+			return subnet
+		}
+	}
+	return ""
 }
 
 // ContainsPort reports whether a port is present or not in an array of ports
@@ -189,50 +222,91 @@ func ProtectedPortsAndProtocols(serviceName string, policyPortProtocols []PortPr
 	return portProtocols
 }
 
-// GetServiceAddress gets the Service Endpoint IP address for a specific
-// Node using the service's Name and Namespace. It returns a list of IP addresses.
-func GetServiceAddresses(nodeName string, serviceName string, serviceNamespace string) ([]string, error) {
+// GetServiceAddress gets the slice of IP addresses in EndpointSlices for a specific
+// Node using the service's Name and Namespace. It returns a list of IP addresses based
+// on the specific IP version
+func GetServiceAddresses(nodeName string, serviceName string, serviceNamespace string, ipVersion string) ([]string, error) {
 	var (
-		rEndpoints = kubernetes.K8sResource {
-			ApiGroup:   "",
+		rEndpointSlices = kubernetes.K8sResource {
+			ApiGroup:   "discovery.k8s.io",
 			ApiVersion: "v1",
-			Resource:   "endpoints",
+			Resource:   "endpointslices",
 			NameSpace:  serviceNamespace,
 		}
+		serviceAddresses = []string{}
+		serviceLabel = fmt.Sprintf("%s=%s", kubernetes.EndpointSliceServiceNameLabel, serviceName)
 	)
-	serviceAddresses := []string{}
 
-	endpoint, err := rEndpoints.RetrieveResourceInfoByName(serviceName)
+	endpointSlices, err := rEndpointSlices.RetrieveResourceListByLabel(serviceLabel)
 	if err != nil {
 		return serviceAddresses, err
 	}
 
-	subsets, found, err := unstructured.NestedSlice(endpoint.Object, "subsets")
-	if err != nil {
-		errMsg := fmt.Errorf("error retrieving subsets: %w", err)
-		return serviceAddresses, errMsg
-	}
+	for _, item := range endpointSlices.Items {
+		addressType, found, err := unstructured.NestedString(item.Object, "addressType")
+		if err != nil || !found {
+			continue
+		}
+		if addressType != ipVersion {
+			continue
+		}
+		endpoints, found, err := unstructured.NestedSlice(item.Object, "endpoints")
+		if err != nil || !found {
+			continue
+		}
 
-	if !found {
-		errMsg := fmt.Errorf("subsets not found")
-		return serviceAddresses, errMsg
-	}
-
-	for _, subset := range subsets {
-		if subsetMap, ret := subset.(map[string]interface{}); ret {
-			// Extract IPs
-			addresses, _, _ := unstructured.NestedSlice(subsetMap, "addresses")
-			for _, addr := range addresses {
-				if addrMap, ret := addr.(map[string]interface{}); ret {
-					if ndName, ret := addrMap["nodeName"].(string); ret {
-						if ip, ret := addrMap["ip"].(string); ret && nodeName == ndName {
-							serviceAddresses = append(serviceAddresses, ip)
-						}
-					}
-				}
+		for _, e := range endpoints {
+			endpoint, ok := e.(map[string]interface{})
+			if !ok {
+				continue
 			}
+
+			addresses, found, err := unstructured.NestedStringSlice(endpoint, "addresses")
+			if err != nil || !found {
+				continue
+			}
+
+			endpointNodeName, found, err := unstructured.NestedString(endpoint, "nodeName")
+			if err != nil || !found {
+				continue
+			}
+
+			if endpointNodeName != nodeName {
+				continue
+			}
+
+			serviceAddresses = append(serviceAddresses, addresses[0])
 		}
 	}
 
 	return serviceAddresses, nil
+}
+
+// GetServiceIPFamilies returns the string slice related to IP Families described in
+// a specific service
+func GetServiceIPFamilies(serviceName string, serviceNamespace string) ([]string, error) {
+	rService := kubernetes.K8sResource {
+		ApiGroup:   "",
+		ApiVersion: "v1",
+		Resource:   "services",
+		NameSpace:  serviceNamespace,
+	}
+
+	service, err := rService.RetrieveResourceInfoByName(serviceName)
+	if err != nil {
+		return nil, err
+	}
+
+	ipFamilies, found, err := unstructured.NestedStringSlice(service.Object, "spec", "ipFamilies")
+	if err != nil {
+		errMsg := fmt.Errorf("error retrieving IP Families: %w", err)
+		return nil, errMsg
+	}
+
+	if !found {
+		errMsg := fmt.Errorf("IP Families not found")
+		return nil, errMsg
+	}
+
+	return ipFamilies, nil
 }

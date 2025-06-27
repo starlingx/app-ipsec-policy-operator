@@ -218,6 +218,7 @@ rules:
   resources:
   - endpoints
   - pods
+  - services
   verbs:
   - get
   - list
@@ -234,6 +235,13 @@ rules:
   - crd.projectcalico.org
   resources:
   - blockaffinities
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - discovery.k8s.io
+  resources:
+  - endpointslices
   verbs:
   - get
   - list
