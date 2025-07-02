@@ -27,7 +27,10 @@ import (
 	"starlingx.windriver.com/ipsec-policy-agent/pkg/vici"
 )
 
-const LocalConn = "k8s-node-local"
+const (
+	LocalConn = "k8s-node-local"
+	LocalConnIPv6 = "k8s-node-local-ipv6"
+)
 
 // CleanConnections terminates the SAs and unloads all the connections
 // specified by the connections list
@@ -36,7 +39,7 @@ func (c *ConfigurationFile) CleanConnections(connections []string) {
 	log := log.FromContext(ctx)
 
 	for _, conn := range connections {
-		if conn != LocalConn {
+		if conn != LocalConn && conn != LocalConnIPv6 {
 			if err := vici.TerminateConnection(conn); err != nil {
 				logMsg := fmt.Sprintf("Warning: Connection %s: %s", conn, err.Error())
 				log.Info(logMsg)

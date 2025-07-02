@@ -117,6 +117,47 @@ func (r *K8sResource) RetrieveResourceInfoByName(name string) (*unstructured.Uns
 	return results, nil
 }
 
+// RetrieveResourceListByLabel gets the list of resource items in cluster by label
+// selector. Returns an error in case of failure.
+func (r *K8sResource) RetrieveResourceListByLabel(label string) (*unstructured.UnstructuredList, error) {
+	var config *rest.Config
+	var err error
+
+	if _, inCluster := os.LookupEnv(KubernetesServiceHost); inCluster {
+		// Running inside the cluster
+		config, _ = rest.InClusterConfig()
+	} else {
+		// Running outside the cluster, use kubeconfig
+		kubeconfig := clientcmd.NewDefaultClientConfigLoadingRules().GetDefaultFilename()
+		config, _ = clientcmd.BuildConfigFromFlags("", kubeconfig)
+	}
+
+	// Create a dynamic client
+	client, err := dynamic.NewForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("Error getting kubernetes conf: %w", err)
+	}
+
+	// Get the resource client for the given API group
+	resourceClient := client.Resource(
+		schema.GroupVersionResource{
+			Group:    r.ApiGroup,
+			Version:  r.ApiVersion,
+			Resource: r.Resource,
+		},
+	).Namespace(r.NameSpace)
+
+	// Retrieve data from the resource
+	results, err := resourceClient.List(context.TODO(), metav1.ListOptions {
+        LabelSelector: label,
+    })
+	if err != nil {
+		return nil, fmt.Errorf("Error retrieving data from the resource: %w", err)
+	}
+
+	return results, nil
+}
+
 func GetNodeNameByPodName(client client.Client, ctx context.Context, podName string) (string, error) {
 	var pod corev1.Pod
 	if err := client.Get(ctx, types.NamespacedName{
@@ -174,8 +215,7 @@ func GetCurrentNodeConfiguration(currentNodeName string) (NodeInfo, error) {
 	for _, hostIP := range hostIPs {
 		if nodeMap, ret := hostIP.(map[string]interface{}); ret {
 			if nodeMap["type"] == "InternalIP" {
-				nodeInfo.ClusterHostAddr = nodeMap["address"].(string)
-				break
+				nodeInfo.ClusterHostAddr = append(nodeInfo.ClusterHostAddr, nodeMap["address"].(string))
 			}
 		}
 	}
@@ -212,8 +252,7 @@ func GetCurrentNodeConfiguration(currentNodeName string) (NodeInfo, error) {
 			continue
 		}
 
-		nodeInfo.PodSubnet = cidr
-		break
+		nodeInfo.PodSubnet = append(nodeInfo.PodSubnet, cidr)
 	}
 
 	return nodeInfo, nil
@@ -263,7 +302,7 @@ func GetNodesConfiguration() (NodesInfo, error) {
 		for _, hostIP := range hostIPs {
 			if nodeMap, ret := hostIP.(map[string]interface{}); ret {
 				if nodeMap["type"] == "InternalIP" {
-					nodeInfo.ClusterHostAddr = nodeMap["address"].(string)
+					nodeInfo.ClusterHostAddr = append(nodeInfo.ClusterHostAddr, nodeMap["address"].(string))
 				}
 			}
 		}
@@ -302,7 +341,7 @@ func GetNodesConfiguration() (NodesInfo, error) {
 			}
 			//fmt.Println("node cidr:", cidr)
 
-			nodeInfo.PodSubnet = cidr
+			nodeInfo.PodSubnet = append(nodeInfo.PodSubnet, cidr)
 		}
 
 		nodesInfo.Nodes = append(nodesInfo.Nodes, nodeInfo)

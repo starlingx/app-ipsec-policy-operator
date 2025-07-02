@@ -61,9 +61,10 @@ func IPsecPolicyPredicate() predicate.Funcs {
 }
 
 //+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
-//+kubebuilder:rbac:groups="",resources=endpoints;pods,verbs=get;list;watch
+//+kubebuilder:rbac:groups="",resources=endpoints;services;pods,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;create;delete;update;patch;watch
 //+kubebuilder:rbac:groups=crd.projectcalico.org,resources=blockaffinities,verbs=get;list
+//+kubebuilder:rbac:groups=discovery.k8s.io,resources=endpointslices,verbs=get;list;watch
 
 //+kubebuilder:rbac:groups=starlingx.windriver.com,resources=ipsecpolicies,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=starlingx.windriver.com,resources=ipsecpolicies/status,verbs=get;update;patch

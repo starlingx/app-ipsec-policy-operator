@@ -25,8 +25,8 @@ type K8sResource struct {
 
 type NodeInfo struct {
 	Hostname        string
-	PodSubnet       string
-	ClusterHostAddr string
+	PodSubnet       []string
+	ClusterHostAddr []string
 }
 
 type NodesInfo struct {
