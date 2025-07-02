@@ -11,6 +11,7 @@
 from oslo_log import log as logging
 from sysinv.common import constants
 from sysinv.common import exception
+from sysinv.common import utils as cutils
 from sysinv.helm import lifecycle_base as base
 from sysinv.helm import lifecycle_utils
 from sysinv.helm.lifecycle_constants import LifecycleConstants
@@ -40,8 +41,9 @@ class IPsecPolicyOperatorAppLifecycleOperator(base.AppLifecycleOperator):
                     return self.post_remove(app_op, app, hook_info)
 
         elif hook_info.lifecycle_type == LifecycleConstants.APP_LIFECYCLE_TYPE_SEMANTIC_CHECK:
-            if hook_info.operation == constants.APP_EVALUATE_REAPPLY_OP:
-                return self.reapply_check(app_op)
+            if hook_info.operation in [constants.APP_APPLY_OP,
+                                       constants.APP_EVALUATE_REAPPLY_OP]:
+                return self.pre_apply_semantic_check(app_op, hook_info.operation)
 
         super(IPsecPolicyOperatorAppLifecycleOperator, self).app_lifecycle_actions(
             context, conductor_obj, app_op, app, hook_info)
@@ -131,8 +133,15 @@ class IPsecPolicyOperatorAppLifecycleOperator(base.AppLifecycleOperator):
         LOG.info("Removing ipsec-policy-agent-operator labels")
         self.cleanup_labels(app_op)
 
-    def reapply_check(self, app_op):
-        LOG.info("Executing reapply_check for IPsec Policy Operator app")
+    def pre_apply_semantic_check(self, app_op, operation):
+        LOG.info("Executing pre_apply_semantic_check for IPsec Policy Operator app")
 
-        LOG.info("Reapplying ipsec-policy-agent-operator labels to all nodes")
-        self.apply_labels(app_op)
+        # Stop apply the app since the IPsec is for inter host pod-to-pod traffic
+        if cutils.is_aio_simplex_system(app_op._dbapi):
+            raise exception.LifecycleSemanticCheckException(
+                "Cannot apply application: the app is only for multiple nodes system."
+            )
+
+        if operation == constants.APP_EVALUATE_REAPPLY_OP:
+            LOG.info("Reapplying ipsec-policy-agent-operator labels to all nodes")
+            self.apply_labels(app_op)
