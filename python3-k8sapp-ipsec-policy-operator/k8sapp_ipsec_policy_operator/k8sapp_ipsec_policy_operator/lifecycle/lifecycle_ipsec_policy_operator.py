@@ -11,6 +11,7 @@
 from oslo_log import log as logging
 from sysinv.common import constants
 from sysinv.common import exception
+from sysinv.common import kubernetes
 from sysinv.common import utils as cutils
 from sysinv.helm import lifecycle_base as base
 from sysinv.helm import lifecycle_utils
@@ -32,18 +33,25 @@ class IPsecPolicyOperatorAppLifecycleOperator(base.AppLifecycleOperator):
         :param hook_info: LifecycleHookInfo object
 
         """
+        if hook_info.lifecycle_type == LifecycleConstants.APP_LIFECYCLE_TYPE_OPERATION:
+            if hook_info.operation == constants.APP_REMOVE_OP:
+                if hook_info.relative_timing == LifecycleConstants.APP_LIFECYCLE_TIMING_POST:
+                    return self.post_remove(app_op, app, hook_info)
+
         if hook_info.lifecycle_type == LifecycleConstants.APP_LIFECYCLE_TYPE_RESOURCE:
             if hook_info.operation == constants.APP_APPLY_OP:
                 if hook_info.relative_timing == LifecycleConstants.APP_LIFECYCLE_TIMING_PRE:
                     return self.pre_apply(app_op, app, hook_info)
-            elif hook_info.operation == constants.APP_REMOVE_OP:
-                if hook_info.relative_timing == LifecycleConstants.APP_LIFECYCLE_TIMING_POST:
-                    return self.post_remove(app_op, app, hook_info)
 
         elif hook_info.lifecycle_type == LifecycleConstants.APP_LIFECYCLE_TYPE_SEMANTIC_CHECK:
             if hook_info.operation in [constants.APP_APPLY_OP,
                                        constants.APP_EVALUATE_REAPPLY_OP]:
                 return self.pre_apply_semantic_check(app_op, hook_info.operation)
+            # TODO (lmendess): Move to APP_LIFECYLE_TYPE_OPERATION once it is capable
+            # to raise errors and change app status to remove-failed in case of failures.
+            elif hook_info.operation == constants.APP_REMOVE_OP:
+                if hook_info.relative_timing == LifecycleConstants.APP_LIFECYCLE_TIMING_PRE:
+                    return self.pre_remove()
 
         super(IPsecPolicyOperatorAppLifecycleOperator, self).app_lifecycle_actions(
             context, conductor_obj, app_op, app, hook_info)
@@ -123,6 +131,51 @@ class IPsecPolicyOperatorAppLifecycleOperator(base.AppLifecycleOperator):
 
         LOG.info("Applying ipsec-policy-agent-operator labels")
         self.apply_labels(app_op)
+
+    def pre_remove(self):
+        LOG.info("Executing pre_remove for IPsec Policy Operator app")
+        namespace = "ipsec-policy-operator"
+
+        scale_cmd = ["kubectl", '--kubeconfig', kubernetes.KUBERNETES_ADMIN_CONF,
+                "-n", namespace, "scale", "deployments.apps",
+                "ipsec-policy-manager-controller-manager", "--replicas=0"]
+
+        stdout, stderr = cutils.trycmd(*scale_cmd)
+        if stderr != '':
+            LOG.warning(f"Failed to scale ipsec policy manager operator: {stderr}")
+
+        LOG.info(f"{stdout}")
+
+        get_cmd = ["kubectl", '--kubeconfig', kubernetes.KUBERNETES_ADMIN_CONF,
+                "get", "configmaps", "-n", namespace, "-o",
+                "custom-columns=NAME:.metadata.name", "--no-headers"]
+
+        stdout, stderr = cutils.trycmd(*get_cmd)
+        if stderr != '':
+            errMsg = f"Failed to get the configmaps in the namespace {namespace}: {stderr}"
+            # TODO (lmendess): Change to KubeAppDeleteFailure in the future
+            raise exception.LifecycleSemanticCheckException(errMsg)
+
+        LOG.info(f"{stdout}")
+
+        configmap_names = stdout.strip().splitlines()
+
+        if not configmap_names:
+            LOG.info(f"No ConfigMaps found in namespace '{namespace}'.")
+        else:
+            for name in configmap_names:
+                LOG.info(f"Deleting ConfigMap: {name}")
+
+                del_cmd = ["kubectl", '--kubeconfig', kubernetes.KUBERNETES_ADMIN_CONF,
+                     "delete", "configmap", name, "-n", namespace]
+
+                stdout, stderr = cutils.trycmd(*del_cmd)
+                if stderr != '':
+                    errMsg = f"Failed to delete configmap {name}: {stderr}"
+                    # TODO (lmendess): Change to KubeAppDeleteFailure in the future
+                    raise exception.LifecycleSemanticCheckException(errMsg)
+
+                LOG.info(f"{stdout}")
 
     def post_remove(self, app_op, app, hook_info):
         LOG.info("Executing post_remove for IPsec Policy Operator app")
