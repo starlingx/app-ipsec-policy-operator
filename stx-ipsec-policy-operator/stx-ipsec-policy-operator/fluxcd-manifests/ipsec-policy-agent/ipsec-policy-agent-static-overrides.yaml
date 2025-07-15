@@ -8,5 +8,5 @@ controllerManager:
   manager:
     image:
       repository: docker.io/starlingx/stx-ipsec-policy-agent-operator
-      tag: stx.11.0-v0.1.0
+      tag: stx.11.0-v0.2.0
 
