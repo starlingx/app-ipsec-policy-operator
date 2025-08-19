@@ -2,17 +2,17 @@
 # This file is used to track the info used to scaffold your project
 # and allow the plugins properly work.
 # More info: https://book.kubebuilder.io/reference/project-config.html
-domain: starlingx.windriver.com
+domain: starlingx.io
 layout:
 - go.kubebuilder.io/v4
 plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
 projectName: ipsec-policy-agent-operator
-repo: starlingx.windriver.com/ipsec-policy-agent-operator
+repo: starlingx.io/ipsec-policy-agent-operator
 resources:
 - controller: true
-  domain: starlingx.windriver.com
+  domain: starlingx.io
   group: ipsecpolicies
   kind: IPsecPolicyAgent
   version: v1

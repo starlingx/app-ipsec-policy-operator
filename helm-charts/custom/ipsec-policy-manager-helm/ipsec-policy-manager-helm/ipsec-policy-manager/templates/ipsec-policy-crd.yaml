@@ -5,7 +5,7 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: ipsec-policy-operator/ipsec-policy-manager-serving-cert
     controller-gen.kubebuilder.io/version: v0.14.0
-  name: ipsecpolicies.starlingx.windriver.com
+  name: ipsecpolicies.starlingx.io
 spec:
   conversion:
     strategy: Webhook
@@ -17,7 +17,7 @@ spec:
           path: /convert
       conversionReviewVersions:
       - v1
-  group: starlingx.windriver.com
+  group: starlingx.io
   names:
     kind: IPsecPolicy
     listKind: IPsecPolicyList

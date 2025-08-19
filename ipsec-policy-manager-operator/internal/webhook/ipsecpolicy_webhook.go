@@ -27,8 +27,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-	api "starlingx.windriver.com/ipsec-policy-manager-operator/api/v1"
-	"starlingx.windriver.com/ipsec-policy-manager-operator/pkg/utility"
+	api "starlingx.io/ipsec-policy-manager-operator/api/v1"
+	"starlingx.io/ipsec-policy-manager-operator/pkg/utility"
 )
 
 // log is for logging in this package.
@@ -131,7 +131,7 @@ func isValidServicePortAndProtocol(newPolicy api.Policy) (bool, error) {
 	return true, nil
 }
 
-//+kubebuilder:webhook:path=/validate-starlingx-windriver-com-v1-ipsecpolicy,mutating=false,failurePolicy=fail,sideEffects=None,groups=starlingx.windriver.com,resources=ipsecpolicies,verbs=create;update,versions=v1,name=vipsecpolicy.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-starlingx-io-v1-ipsecpolicy,mutating=false,failurePolicy=fail,sideEffects=None,groups=starlingx.io,resources=ipsecpolicies,verbs=create;update,versions=v1,name=vipsecpolicy.kb.io,admissionReviewVersions=v1
 
 // ValidateCreate checks for existing objects with the same name.
 func (r *IPsecPolicyValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {

@@ -24,11 +24,11 @@ import (
 	"strings"
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"starlingx.windriver.com/ipsec-policy-agent/pkg/vici"
+	"starlingx.io/ipsec-policy-agent/pkg/vici"
 )
 
 const (
-	LocalConn = "k8s-node-local"
+	LocalConn     = "k8s-node-local"
 	LocalConnIPv6 = "k8s-node-local-ipv6"
 )
 

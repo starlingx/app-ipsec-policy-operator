@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/yaml"
 
-	"starlingx.windriver.com/ipsec-policy-manager-operator/pkg/kubernetes"
+	"starlingx.io/ipsec-policy-manager-operator/pkg/kubernetes"
 )
 
 // GetYamlConf converts a struct into YAML format
@@ -227,14 +227,14 @@ func ProtectedPortsAndProtocols(serviceName string, policyPortProtocols []PortPr
 // on the specific IP version
 func GetServiceAddresses(nodeName string, serviceName string, serviceNamespace string, ipVersion string) ([]string, error) {
 	var (
-		rEndpointSlices = kubernetes.K8sResource {
+		rEndpointSlices = kubernetes.K8sResource{
 			ApiGroup:   "discovery.k8s.io",
 			ApiVersion: "v1",
 			Resource:   "endpointslices",
 			NameSpace:  serviceNamespace,
 		}
 		serviceAddresses = []string{}
-		serviceLabel = fmt.Sprintf("%s=%s", kubernetes.EndpointSliceServiceNameLabel, serviceName)
+		serviceLabel     = fmt.Sprintf("%s=%s", kubernetes.EndpointSliceServiceNameLabel, serviceName)
 	)
 
 	endpointSlices, err := rEndpointSlices.RetrieveResourceListByLabel(serviceLabel)
@@ -285,7 +285,7 @@ func GetServiceAddresses(nodeName string, serviceName string, serviceNamespace s
 // GetServiceIPFamilies returns the string slice related to IP Families described in
 // a specific service
 func GetServiceIPFamilies(serviceName string, serviceNamespace string) ([]string, error) {
-	rService := kubernetes.K8sResource {
+	rService := kubernetes.K8sResource{
 		ApiGroup:   "",
 		ApiVersion: "v1",
 		Resource:   "services",

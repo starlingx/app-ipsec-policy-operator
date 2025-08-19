@@ -40,7 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
-	api "starlingx.windriver.com/ipsec-policy-manager-operator/api/v1"
+	api "starlingx.io/ipsec-policy-manager-operator/api/v1"
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
@@ -114,7 +114,7 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
-       err = (&IPsecPolicyValidator{Client: mgr.GetClient(),}).SetupWebhookWithManager(mgr)
+	err = (&IPsecPolicyValidator{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:webhook

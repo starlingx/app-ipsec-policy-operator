@@ -22,9 +22,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	api "starlingx.windriver.com/ipsec-policy-manager-operator/api/v1"
-	"starlingx.windriver.com/ipsec-policy-manager-operator/pkg/kubernetes"
-	"starlingx.windriver.com/ipsec-policy-manager-operator/pkg/swanctl"
+	api "starlingx.io/ipsec-policy-manager-operator/api/v1"
+	"starlingx.io/ipsec-policy-manager-operator/pkg/kubernetes"
+	"starlingx.io/ipsec-policy-manager-operator/pkg/swanctl"
 )
 
 func GenerateConf(k8sClient client.Client, crList api.IPsecPolicyList) error {

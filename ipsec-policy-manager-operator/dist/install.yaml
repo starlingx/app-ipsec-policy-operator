@@ -13,7 +13,7 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: ipsec-policy-operator/ipsec-policy-manager-serving-cert
     controller-gen.kubebuilder.io/version: v0.14.0
-  name: ipsecpolicies.starlingx.windriver.com
+  name: ipsecpolicies.starlingx.io
 spec:
   conversion:
     strategy: Webhook
@@ -25,7 +25,7 @@ spec:
           path: /convert
       conversionReviewVersions:
       - v1
-  group: starlingx.windriver.com
+  group: starlingx.io
   names:
     kind: IPsecPolicy
     listKind: IPsecPolicyList
@@ -155,7 +155,7 @@ metadata:
   name: ipsec-policy-manager-ipsecpolicy-editor-role
 rules:
 - apiGroups:
-  - starlingx.windriver.com
+  - starlingx.io
   resources:
   - ipsecpolicies
   verbs:
@@ -167,7 +167,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - starlingx.windriver.com
+  - starlingx.io
   resources:
   - ipsecpolicies/status
   verbs:
@@ -182,7 +182,7 @@ metadata:
   name: ipsec-policy-manager-ipsecpolicy-viewer-role
 rules:
 - apiGroups:
-  - starlingx.windriver.com
+  - starlingx.io
   resources:
   - ipsecpolicies
   verbs:
@@ -190,7 +190,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - starlingx.windriver.com
+  - starlingx.io
   resources:
   - ipsecpolicies/status
   verbs:
@@ -246,7 +246,7 @@ rules:
   - get
   - list
 - apiGroups:
-  - starlingx.windriver.com
+  - starlingx.io
   resources:
   - ipsecpolicies
   verbs:
@@ -258,13 +258,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - starlingx.windriver.com
+  - starlingx.io
   resources:
   - ipsecpolicies/finalizers
   verbs:
   - update
 - apiGroups:
-  - starlingx.windriver.com
+  - starlingx.io
   resources:
   - ipsecpolicies/status
   verbs:
@@ -538,12 +538,12 @@ webhooks:
     service:
       name: ipsec-policy-manager-webhook-service
       namespace: ipsec-policy-operator
-      path: /validate-starlingx-windriver-com-v1-ipsecpolicy
+      path: /validate-starlingx-io-v1-ipsecpolicy
   failurePolicy: Fail
   name: vipsecpolicy.kb.io
   rules:
   - apiGroups:
-    - starlingx.windriver.com
+    - starlingx.io
     apiVersions:
     - v1
     operations:

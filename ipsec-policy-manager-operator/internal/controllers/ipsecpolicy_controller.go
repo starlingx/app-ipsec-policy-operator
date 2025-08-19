@@ -26,9 +26,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	api "starlingx.windriver.com/ipsec-policy-manager-operator/api/v1"
-	"starlingx.windriver.com/ipsec-policy-manager-operator/pkg/config"
-	"starlingx.windriver.com/ipsec-policy-manager-operator/pkg/kubernetes"
+	api "starlingx.io/ipsec-policy-manager-operator/api/v1"
+	"starlingx.io/ipsec-policy-manager-operator/pkg/config"
+	"starlingx.io/ipsec-policy-manager-operator/pkg/kubernetes"
 )
 
 // IPsecPolicyReconciler reconciles a IPsecPolicy object
@@ -66,9 +66,9 @@ func IPsecPolicyPredicate() predicate.Funcs {
 //+kubebuilder:rbac:groups=crd.projectcalico.org,resources=blockaffinities,verbs=get;list
 //+kubebuilder:rbac:groups=discovery.k8s.io,resources=endpointslices,verbs=get;list;watch
 
-//+kubebuilder:rbac:groups=starlingx.windriver.com,resources=ipsecpolicies,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=starlingx.windriver.com,resources=ipsecpolicies/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=starlingx.windriver.com,resources=ipsecpolicies/finalizers,verbs=update
+//+kubebuilder:rbac:groups=starlingx.io,resources=ipsecpolicies,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=starlingx.io,resources=ipsecpolicies/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=starlingx.io,resources=ipsecpolicies/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

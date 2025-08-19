@@ -18,7 +18,8 @@ package swanctl
 
 import (
 	"os"
-	"starlingx.windriver.com/ipsec-policy-agent/pkg/vici"
+
+	"starlingx.io/ipsec-policy-agent/pkg/vici"
 )
 
 type ConfigurationFile struct {

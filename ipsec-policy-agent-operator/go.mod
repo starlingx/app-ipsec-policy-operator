@@ -1,4 +1,4 @@
-module starlingx.windriver.com/ipsec-policy-agent
+module starlingx.io/ipsec-policy-agent
 
 go 1.21
 

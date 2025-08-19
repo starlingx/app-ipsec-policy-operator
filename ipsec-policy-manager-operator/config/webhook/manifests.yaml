@@ -10,12 +10,12 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-starlingx-windriver-com-v1-ipsecpolicy
+      path: /validate-starlingx-io-v1-ipsecpolicy
   failurePolicy: Fail
   name: vipsecpolicy.kb.io
   rules:
   - apiGroups:
-    - starlingx.windriver.com
+    - starlingx.io
     apiVersions:
     - v1
     operations:

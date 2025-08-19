@@ -21,12 +21,12 @@ import (
 	"encoding/json"
 	"fmt"
 
-	api "starlingx.windriver.com/ipsec-policy-manager-operator/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"starlingx.windriver.com/ipsec-policy-manager-operator/pkg/kubernetes"
-	"starlingx.windriver.com/ipsec-policy-manager-operator/pkg/utility"
-	"starlingx.windriver.com/ipsec-policy-manager-operator/pkg/vici"
+	api "starlingx.io/ipsec-policy-manager-operator/api/v1"
+	"starlingx.io/ipsec-policy-manager-operator/pkg/kubernetes"
+	"starlingx.io/ipsec-policy-manager-operator/pkg/utility"
+	"starlingx.io/ipsec-policy-manager-operator/pkg/vici"
 )
 
 func (c *ConfigurationFile) MarshalLocalConn() string {
@@ -152,7 +152,7 @@ func (c *ConfigurationFile) GetNodesConf(nodeName string, policiesList api.IPsec
 					ipFamilies, err := utility.GetServiceIPFamilies(policy.ServiceName, policy.ServiceNS)
 					if err != nil {
 						log.Info("Warning: IP Families not found", "Node", node.Hostname, "Service",
-						            policy.ServiceName, "Namespace", policy.ServiceNS, "IP Version", ipVersion)
+							policy.ServiceName, "Namespace", policy.ServiceNS, "IP Version", ipVersion)
 					} else if len(ipFamilies) == 1 && ipFamilies[0] != ipVersion {
 						continue
 					}
@@ -162,30 +162,30 @@ func (c *ConfigurationFile) GetNodesConf(nodeName string, policiesList api.IPsec
 					if err != nil {
 						if client.IgnoreNotFound(err) == nil {
 							log.Info("Warning: Service not found", "Node", node.Hostname,
-									"Service", policy.ServiceName, "Namespace", policy.ServiceNS)
+								"Service", policy.ServiceName, "Namespace", policy.ServiceNS)
 							continue
 						}
 						log.Error(err, "Unable to retrieve endpoints on current node for the service", "Node", node.Hostname,
-								"Service", policy.ServiceName, "namespace", policy.ServiceNS)
+							"Service", policy.ServiceName, "namespace", policy.ServiceNS)
 						continue
 					}
 					log.Info(fmt.Sprintf("Endpoints on current node: %s for service: %s in namespace: %s: %v\n",
-							nodeName, policy.ServiceName, policy.ServiceNS, localServiceEndpointAddresses))
+						nodeName, policy.ServiceName, policy.ServiceNS, localServiceEndpointAddresses))
 					c.ServiceEndpointAddresses = localServiceEndpointAddresses
 
 					nodeServiceEndpointAddresses, err := utility.GetServiceAddresses(node.Hostname, policy.ServiceName, policy.ServiceNS, ipVersion)
 					if err != nil {
 						if client.IgnoreNotFound(err) == nil {
 							log.Info("Warning: Service not found", "Node", node.Hostname,
-									"Service", policy.ServiceName, "Namespace", policy.ServiceNS)
+								"Service", policy.ServiceName, "Namespace", policy.ServiceNS)
 							continue
 						}
 						log.Error(err, "Unable to retrieve endpoints on this node for the service", "Node", node.Hostname,
-								"Service", policy.ServiceName, "namespace", policy.ServiceNS)
+							"Service", policy.ServiceName, "namespace", policy.ServiceNS)
 						continue
 					}
 					log.Info(fmt.Sprintf("Endpoints on node: %s for service: %s in namespace: %s: %v\n",
-							node.Hostname, policy.ServiceName, policy.ServiceNS, nodeServiceEndpointAddresses))
+						node.Hostname, policy.ServiceName, policy.ServiceNS, nodeServiceEndpointAddresses))
 
 					// ServicePorts: udp/XXXX,tcp/XXXX
 					policyPortProtocols := utility.GetPolicyPorts(policy.ServicePorts)
@@ -194,11 +194,11 @@ func (c *ConfigurationFile) GetNodesConf(nodeName string, policiesList api.IPsec
 					if err != nil {
 						if client.IgnoreNotFound(err) == nil {
 							log.Info("Warning: Service not found", "Node", node.Hostname,
-									"Service", policy.ServiceName, "Namespace", policy.ServiceNS)
+								"Service", policy.ServiceName, "Namespace", policy.ServiceNS)
 							continue
 						}
 						log.Error(err, "Unable to retrieve service's port and protocol", "Node", node.Hostname,
-								"Service", policy.ServiceName, "namespace", policy.ServiceNS)
+							"Service", policy.ServiceName, "namespace", policy.ServiceNS)
 						continue
 					}
 

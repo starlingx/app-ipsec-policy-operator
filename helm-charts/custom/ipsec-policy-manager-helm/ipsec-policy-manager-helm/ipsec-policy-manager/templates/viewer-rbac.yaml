@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/name: ipsec-policy-manager-operator
 rules:
 - apiGroups:
-  - starlingx.windriver.com
+  - starlingx.io
   resources:
   - ipsecpolicies
   verbs:
@@ -15,7 +15,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - starlingx.windriver.com
+  - starlingx.io
   resources:
   - ipsecpolicies/status
   verbs:

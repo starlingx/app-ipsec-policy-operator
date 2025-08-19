@@ -28,9 +28,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	api "starlingx.windriver.com/ipsec-policy-manager-operator/api/v1"
-	"starlingx.windriver.com/ipsec-policy-manager-operator/pkg/config"
-	"starlingx.windriver.com/ipsec-policy-manager-operator/pkg/kubernetes"
+	api "starlingx.io/ipsec-policy-manager-operator/api/v1"
+	"starlingx.io/ipsec-policy-manager-operator/pkg/config"
+	"starlingx.io/ipsec-policy-manager-operator/pkg/kubernetes"
 )
 
 // NodeReconciler reconciles a Node object

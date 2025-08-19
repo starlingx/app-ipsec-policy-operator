@@ -8,7 +8,7 @@ metadata:
   name: ipsecpolicy-editor-role
 rules:
 - apiGroups:
-  - starlingx.windriver.com
+  - starlingx.io
   resources:
   - ipsecpolicies
   verbs:
@@ -20,7 +20,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - starlingx.windriver.com
+  - starlingx.io
   resources:
   - ipsecpolicies/status
   verbs:

@@ -27,7 +27,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	starlingxwindrivercomv1 "starlingx.windriver.com/ipsec-policy-manager-operator/api/v1"
+	starlingxiov1 "starlingx.io/ipsec-policy-manager-operator/api/v1"
 )
 
 var _ = Describe("IPsecPolicy Controller", func() {
@@ -40,13 +40,13 @@ var _ = Describe("IPsecPolicy Controller", func() {
 			Name:      resourceName,
 			Namespace: "default", // TODO(user):Modify as needed
 		}
-		ipsecpolicy := &starlingxwindrivercomv1.IPsecPolicy{}
+		ipsecpolicy := &starlingxiov1.IPsecPolicy{}
 
 		BeforeEach(func() {
 			By("creating the custom resource for the Kind IPsecPolicy")
 			err := k8sClient.Get(ctx, typeNamespacedName, ipsecpolicy)
 			if err != nil && errors.IsNotFound(err) {
-				resource := &starlingxwindrivercomv1.IPsecPolicy{
+				resource := &starlingxiov1.IPsecPolicy{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: "default",
@@ -59,7 +59,7 @@ var _ = Describe("IPsecPolicy Controller", func() {
 
 		AfterEach(func() {
 			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &starlingxwindrivercomv1.IPsecPolicy{}
+			resource := &starlingxiov1.IPsecPolicy{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
 

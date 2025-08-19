@@ -1,4 +1,4 @@
-apiVersion: starlingx.windriver.com/v1
+apiVersion: starlingx.io/v1
 kind: IPsecPolicy
 metadata:
   labels:
@@ -16,7 +16,7 @@ spec:
       servicens: cert-manager
       serviceports: tcp/9402
 ---
-apiVersion: starlingx.windriver.com/v1
+apiVersion: starlingx.io/v1
 kind: IPsecPolicy
 metadata:
   labels:

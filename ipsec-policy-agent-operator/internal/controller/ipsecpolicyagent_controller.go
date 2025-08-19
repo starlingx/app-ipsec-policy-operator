@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"starlingx.windriver.com/ipsec-policy-agent/pkg/swanctl"
+	"starlingx.io/ipsec-policy-agent/pkg/swanctl"
 )
 
 const OperatorNamespace string = "ipsec-policy-operator"

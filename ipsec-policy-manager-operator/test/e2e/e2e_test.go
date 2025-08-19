@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"starlingx.windriver.com/ipsec-policy-manager-operator/test/utils"
+	"starlingx.io/ipsec-policy-manager-operator/test/utils"
 )
 
 const namespace = "ipsec-policy-manager-operator-system"

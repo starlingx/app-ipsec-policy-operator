@@ -32,7 +32,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	starlingxwindrivercomv1 "starlingx.windriver.com/ipsec-policy-manager-operator/api/v1"
+	starlingxiov1 "starlingx.io/ipsec-policy-manager-operator/api/v1"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -72,7 +72,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	err = starlingxwindrivercomv1.AddToScheme(scheme.Scheme)
+	err = starlingxiov1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme
