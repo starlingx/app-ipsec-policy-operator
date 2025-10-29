@@ -133,7 +133,9 @@ func getCurrentConnectionsFromIPSecConfFile() []string {
 	if err != nil {
 		return connections
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
@@ -210,13 +212,13 @@ func (r *IPsecPolicyAgentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	localConnData, ok := configMapResource.Data[swanctl.IPsecConfigLocalMapKey]
 	if !ok {
-		log.Error(fmt.Errorf("Key %s not found in configmap %s", swanctl.IPsecConfigLocalMapKey, configMapName), "Error")
+		log.Error(fmt.Errorf("key %s not found in configmap %s", swanctl.IPsecConfigLocalMapKey, configMapName), "Error")
 		return ctrl.Result{}, err
 	}
 
 	connectionsData, ok := configMapResource.Data[swanctl.IPsecConfigConnsMapKey]
 	if !ok {
-		log.Error(fmt.Errorf("Key %s not found in configmap %s", swanctl.IPsecConfigConnsMapKey, configMapName), "Error")
+		log.Error(fmt.Errorf("key %s not found in configmap %s", swanctl.IPsecConfigConnsMapKey, configMapName), "Error")
 		return ctrl.Result{}, err
 	}
 
@@ -235,10 +237,10 @@ func (r *IPsecPolicyAgentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	connections := getCurrentConnectionsFromIPSecConfFile()
-	configFile.GenerateConf()
-	configFile.WriteFile()
+	_ = configFile.GenerateConf()
+	_ = configFile.WriteFile()
 	configFile.CleanConnections(connections)
-	configFile.LoadConnections()
+	_ = configFile.LoadConnections()
 
 	log.Info(fmt.Sprintf("Config written to %s\n", swanctl.IPsecConfFilePath))
 

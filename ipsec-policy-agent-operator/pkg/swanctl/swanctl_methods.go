@@ -135,12 +135,14 @@ func (c *ConfigurationFile) WriteFile() error {
 	c.File, err = os.Create(IPsecConfFilePath)
 	if err != nil {
 		fmt.Println(err)
-		c.File.Close()
+		_ = c.File.Close()
 		return err
 	}
 
 	for _, item := range c.Data {
-		fmt.Fprintln(c.File, item)
+		if _, err := fmt.Fprintln(c.File, item); err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -103,14 +103,14 @@ func isValidServicePortAndProtocol(newPolicy api.Policy) (bool, error) {
 		if client.IgnoreNotFound(err) == nil {
 			return true, nil
 		}
-		errMsg := fmt.Errorf("Sevice: %v - Namespace: %v - Unable to retrieve service's" +
-		                     "port and protocol: %w", newPolicy.ServiceName, newPolicy.ServiceNS, err)
+		errMsg := fmt.Errorf("service: %v - Namespace: %v - Unable to retrieve service's"+
+			"port and protocol: %w", newPolicy.ServiceName, newPolicy.ServiceNS, err)
 		return false, errMsg
 	}
 
 	for _, policyPortProtocol := range policyPortProtocols {
-		if utility.ContainsProtocol(servicePortProtocols, policyPortProtocol.Protocol) == false {
-			errMsg := fmt.Errorf("Service: %v - is not running on Protocol: %v\n",
+		if !utility.ContainsProtocol(servicePortProtocols, policyPortProtocol.Protocol) {
+			errMsg := fmt.Errorf("service: %v - is not running on Protocol: %v",
 				newPolicy.ServiceName, policyPortProtocol.Protocol)
 			return false, errMsg
 		}
@@ -118,8 +118,8 @@ func isValidServicePortAndProtocol(newPolicy api.Policy) (bool, error) {
 		for _, servicePortProtocol := range servicePortProtocols {
 			if policyPortProtocol.Protocol == servicePortProtocol.Protocol {
 				for _, policyPort := range policyPortProtocol.Ports {
-					if utility.ContainsPort(servicePortProtocol.Ports, policyPort) == false {
-						errMsg := fmt.Errorf("Service: %v - is not running on Protocol/Port: %v/%v\n",
+					if !utility.ContainsPort(servicePortProtocol.Ports, policyPort) {
+						errMsg := fmt.Errorf("service: %v - is not running on Protocol/Port: %v/%v",
 							newPolicy.ServiceName, policyPortProtocol.Protocol, policyPort)
 						return false, errMsg
 					}
@@ -146,19 +146,19 @@ func (r *IPsecPolicyValidator) ValidateCreate(ctx context.Context, obj runtime.O
 	}
 
 	for _, newPolicy := range newPolicies.Spec.Policies {
-		if ret, err := isDuplicateService(newPolicy, policiesList); ret == true {
+		if ret, err := isDuplicateService(newPolicy, policiesList); ret {
 			return nil, err
 		}
 
-		if ret, err := isValidProtocol(newPolicy); ret == false {
+		if ret, err := isValidProtocol(newPolicy); !ret {
 			return nil, err
 		}
 
-		if ret, err := isValidPort(newPolicy); ret == false {
+		if ret, err := isValidPort(newPolicy); !ret {
 			return nil, err
 		}
 
-		if ret, err := isValidServicePortAndProtocol(newPolicy); ret == false {
+		if ret, err := isValidServicePortAndProtocol(newPolicy); !ret {
 			return nil, err
 		}
 	}
@@ -176,15 +176,15 @@ func (r *IPsecPolicyValidator) ValidateUpdate(ctx context.Context, oldObj, newOb
 	}
 
 	for _, newPolicy := range newPolicies.Spec.Policies {
-		if ret, err := isValidProtocol(newPolicy); ret == false {
+		if ret, err := isValidProtocol(newPolicy); !ret {
 			return nil, err
 		}
 
-		if ret, err := isValidPort(newPolicy); ret == false {
+		if ret, err := isValidPort(newPolicy); !ret {
 			return nil, err
 		}
 
-		if ret, err := isValidServicePortAndProtocol(newPolicy); ret == false {
+		if ret, err := isValidServicePortAndProtocol(newPolicy); !ret {
 			return nil, err
 		}
 	}

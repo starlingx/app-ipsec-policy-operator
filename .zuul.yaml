@@ -8,6 +8,8 @@
         - k8sapp-ipsec-policy-operator-tox-pylint
         - k8sapp-ipsec-policy-operator-tox-metadata
         - k8sapp-ipsec-policy-operator-tox-bandit
+        - stx-ipsec-policy-manager-operator-tox-go-lint
+        - stx-ipsec-policy-agent-operator-tox-go-lint
     gate:
       jobs:
         - openstack-tox-linters
@@ -16,6 +18,8 @@
         - k8sapp-ipsec-policy-operator-tox-pylint
         - k8sapp-ipsec-policy-operator-tox-metadata
         - k8sapp-ipsec-policy-operator-tox-bandit
+        - stx-ipsec-policy-manager-operator-tox-go-lint
+        - stx-ipsec-policy-agent-operator-tox-go-lint
     post:
       jobs:
         - stx-app-ipsec-policy-operator-upload-git-mirror
@@ -124,6 +128,26 @@
       - name: git_mirror_credentials
         secret: stx-app-ipsec-policy-operator-github-secret2
         pass-to-parent: true
+
+- job:
+    name: stx-ipsec-policy-manager-operator-tox-go-lint
+    parent: golangci-lint
+    description: |
+            Run go linting for ipsec-policy-manager-operator
+    vars:
+      go_version: 1.24.3
+      golangci_lint_version: 2.1.6
+      zuul_work_dir: "{{ zuul.project.src_dir }}/ipsec-policy-manager-operator"
+
+- job:
+    name: stx-ipsec-policy-agent-operator-tox-go-lint
+    parent: golangci-lint
+    description: |
+            Run go linting for ipsec-policy-agent-operator
+    vars:
+      go_version: 1.24.3
+      golangci_lint_version: 2.1.6
+      zuul_work_dir: "{{ zuul.project.src_dir }}/ipsec-policy-agent-operator"
 
 - secret:
     name: stx-app-ipsec-policy-operator-github-secret2

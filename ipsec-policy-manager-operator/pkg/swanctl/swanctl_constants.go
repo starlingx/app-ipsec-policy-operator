@@ -27,25 +27,25 @@ const (
 	SystemLocalCACert0   string = "system-local-ca-0" + CertificateExtension
 	SystemLocalCACert1   string = "system-local-ca-1" + CertificateExtension
 
-	ReauthTime           int    = 14400
-	RekeyTime            int    = 3600
-	Unique               string = "replace"
-	LocalOptsAuth        string = "pubkey"
-	RemoteOptsID         string = "CN=*"
-	RemoteOptsAuth       string = "pubkey"
+	ReauthTime     int    = 14400
+	RekeyTime      int    = 3600
+	Unique         string = "replace"
+	LocalOptsAuth  string = "pubkey"
+	RemoteOptsID   string = "CN=*"
+	RemoteOptsAuth string = "pubkey"
 
-	EgressMode           string = "tunnel"
-	EgressStartAction    string = "trap"
-	EgressUpdown         string = "/usr/lib/ipsec/_updown iptables"
+	EgressMode        string = "tunnel"
+	EgressStartAction string = "trap"
+	EgressUpdown      string = "/usr/lib/ipsec/_updown iptables"
 
-	IngressMode          string = "tunnel"
-	IngressStartAction   string = "trap"
-	IngressUpdown        string = "/usr/lib/ipsec/_updown iptables"
+	IngressMode        string = "tunnel"
+	IngressStartAction string = "trap"
+	IngressUpdown      string = "/usr/lib/ipsec/_updown iptables"
 
-	ProtocolMode         string = "tunnel"
-	ProtocolStartAction  string = "trap"
-	ProtocolUpdown       string = "/usr/lib/ipsec/_updown iptables"
+	ProtocolMode        string = "tunnel"
+	ProtocolStartAction string = "trap"
+	ProtocolUpdown      string = "/usr/lib/ipsec/_updown iptables"
 
-	BypassMode           string = "pass"
-	BypassStartAction    string = "trap"
+	BypassMode        string = "pass"
+	BypassStartAction string = "trap"
 )

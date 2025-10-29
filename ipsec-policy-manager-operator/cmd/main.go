@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	starlingxiov1 "starlingx.io/ipsec-policy-manager-operator/api/v1"
-	"starlingx.io/ipsec-policy-manager-operator/internal/controllers"
+	controller "starlingx.io/ipsec-policy-manager-operator/internal/controllers"
 	starlingxiowebhook "starlingx.io/ipsec-policy-manager-operator/internal/webhook"
 	//+kubebuilder:scaffold:imports
 )

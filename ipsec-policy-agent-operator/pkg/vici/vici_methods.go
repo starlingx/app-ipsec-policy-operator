@@ -32,12 +32,17 @@ func TerminateConnection(name string) error {
 		fmt.Println(err)
 		return err
 	}
-	defer session.Close()
+	defer func() {
+		_ = session.Close()
+	}()
 
 	msg := govici.NewMessage()
-	msg.Set("ike", name)
+	if err := msg.Set("ike", name); err != nil {
+		return err
+	}
+
 	if _, err := session.CommandRequest("terminate", msg); err != nil {
-		return fmt.Errorf("Terminate failed: %w", err)
+		return fmt.Errorf("terminate failed: %w", err)
 	}
 
 	return nil
@@ -50,13 +55,17 @@ func UnloadConnection(name string) error {
 		fmt.Println(err)
 		return err
 	}
-	defer session.Close()
+	defer func() {
+		_ = session.Close()
+	}()
 
 	msg := govici.NewMessage()
-	msg.Set("name", name)
+	if err := msg.Set("name", name); err != nil {
+		return err
+	}
 
 	if _, err := session.CommandRequest("unload-conn", msg); err != nil {
-		return fmt.Errorf("Unload-conn failed: %w", err)
+		return fmt.Errorf("unload-conn failed: %w", err)
 	}
 
 	return nil
@@ -73,7 +82,9 @@ func LoadConnections(connections ...any) ([]*govici.Message, error) {
 		fmt.Println(err)
 		return results, err
 	}
-	defer session.Close()
+	defer func() {
+		_ = session.Close()
+	}()
 
 	for _, connection := range connections {
 		m := govici.NewMessage()
@@ -86,7 +97,11 @@ func LoadConnections(connections ...any) ([]*govici.Message, error) {
 				break
 			}
 
-			m.Set("replace", true)
+			if err := m.Set("replace", true); err != nil {
+				log.Error(err, "Unable to create message of type Connection")
+				break
+			}
+
 			if err := m.Set(connName, c); err != nil {
 				log.Error(err, "Unable to create message of type Connection")
 				break
@@ -99,7 +114,10 @@ func LoadConnections(connections ...any) ([]*govici.Message, error) {
 				break
 			}
 
-			m.Set("replace", true)
+			if err := m.Set("replace", true); err != nil {
+				log.Error(err, "Unable to create message of type SystemNodeConnection")
+				break
+			}
 			if err = m.Set(connName, c); err != nil {
 				log.Error(err, "Unable to create message of type SystemNodeConnection")
 				break

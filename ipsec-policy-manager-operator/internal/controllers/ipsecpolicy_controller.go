@@ -105,7 +105,9 @@ func (r *IPsecPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 				for _, node := range nodesConf.Nodes {
 					configMapName := kubernetes.IPsecConfigMapPrefix + node.Hostname
-					kubernetes.DeleteConfigMap(r.Client, kubernetes.OperatorNamespace, configMapName)
+					if err = kubernetes.DeleteConfigMap(r.Client, kubernetes.OperatorNamespace, configMapName); err != nil {
+						return ctrl.Result{}, err
+					}
 				}
 
 				return ctrl.Result{}, nil

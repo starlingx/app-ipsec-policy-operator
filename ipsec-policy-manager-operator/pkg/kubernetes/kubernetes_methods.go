@@ -54,7 +54,7 @@ func (r *K8sResource) RetrieveResourceInfo() (*unstructured.UnstructuredList, er
 	// Create a dynamic client
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("Error getting kubernetes conf: %w", err)
+		return nil, fmt.Errorf("error getting kubernetes conf: %w", err)
 	}
 
 	// Get the resource client for the given API group
@@ -69,7 +69,7 @@ func (r *K8sResource) RetrieveResourceInfo() (*unstructured.UnstructuredList, er
 	// Retrieve data from the resource
 	results, err := resourceClient.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving data from the resource: %w", err)
+		return nil, fmt.Errorf("error retrieving data from the resource: %w", err)
 	}
 
 	return results, nil
@@ -96,7 +96,7 @@ func (r *K8sResource) RetrieveResourceInfoByName(name string) (*unstructured.Uns
 	// Create a dynamic client
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("Error getting kubernetes conf: %w", err)
+		return nil, fmt.Errorf("error getting kubernetes conf: %w", err)
 	}
 
 	// Get the resource client for the given API group
@@ -111,7 +111,7 @@ func (r *K8sResource) RetrieveResourceInfoByName(name string) (*unstructured.Uns
 	// Retrieve data from the resource
 	results, err := resourceClient.Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving data from the resource: %w", err)
+		return nil, fmt.Errorf("error retrieving data from the resource: %w", err)
 	}
 
 	return results, nil
@@ -135,7 +135,7 @@ func (r *K8sResource) RetrieveResourceListByLabel(label string) (*unstructured.U
 	// Create a dynamic client
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("Error getting kubernetes conf: %w", err)
+		return nil, fmt.Errorf("error getting kubernetes conf: %w", err)
 	}
 
 	// Get the resource client for the given API group
@@ -148,11 +148,12 @@ func (r *K8sResource) RetrieveResourceListByLabel(label string) (*unstructured.U
 	).Namespace(r.NameSpace)
 
 	// Retrieve data from the resource
-	results, err := resourceClient.List(context.TODO(), metav1.ListOptions {
-        LabelSelector: label,
-    })
+	results, err := resourceClient.List(context.TODO(), metav1.ListOptions{
+		LabelSelector: label,
+	})
+
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving data from the resource: %w", err)
+		return nil, fmt.Errorf("error retrieving data from the resource: %w", err)
 	}
 
 	return results, nil
@@ -161,7 +162,7 @@ func (r *K8sResource) RetrieveResourceListByLabel(label string) (*unstructured.U
 func GetNodeNameByPodName(client client.Client, ctx context.Context, podName string) (string, error) {
 	var pod corev1.Pod
 	if err := client.Get(ctx, types.NamespacedName{
-		Name: podName,
+		Name:      podName,
 		Namespace: OperatorNamespace,
 	}, &pod); err != nil {
 		return "", fmt.Errorf("unable to retrieve Pod info. Error: %w", err)
@@ -176,7 +177,7 @@ func GetCurrentNodeConfiguration(currentNodeName string) (NodeInfo, error) {
 	// Get nodes in the cluster
 	var (
 		currentNode unstructured.Unstructured
-		rNode = K8sResource{
+		rNode       = K8sResource{
 			ApiGroup:   "",
 			ApiVersion: "v1",
 			Resource:   "nodes",
@@ -209,7 +210,7 @@ func GetCurrentNodeConfiguration(currentNodeName string) (NodeInfo, error) {
 	// Node cluster host IPs
 	hostIPs, found, err := unstructured.NestedSlice(currentNode.Object, "status", "addresses")
 	if err != nil || !found {
-		return NodeInfo{}, fmt.Errorf("Error or addresses not found for current node: %w", err)
+		return NodeInfo{}, fmt.Errorf("error or addresses not found for current node: %w", err)
 	}
 	//map[address:192.168.206.2 type:InternalIP] map[address:controller-0 type:Hostname]
 	for _, hostIP := range hostIPs {

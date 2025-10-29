@@ -94,7 +94,7 @@ func (c *ConfigurationFile) GetNodesConf(nodeName string, policiesList api.IPsec
 	log := log.FromContext(ctx)
 	currentNode, err := kubernetes.GetCurrentNodeConfiguration(nodeName)
 	if err != nil {
-		return fmt.Errorf("unable to retrive current node configuration. %w", err)
+		return fmt.Errorf("unable to retrieve current node configuration. %w", err)
 	}
 
 	c.Hostname = currentNode.Hostname
@@ -103,7 +103,7 @@ func (c *ConfigurationFile) GetNodesConf(nodeName string, policiesList api.IPsec
 
 	nodesConf, err := kubernetes.GetNodesConfiguration()
 	if err != nil {
-		return fmt.Errorf("unable to retrive nodes configuration. %w", err)
+		return fmt.Errorf("unable to retrieve nodes configuration. %w", err)
 	}
 
 	for _, node := range nodesConf.Nodes {
@@ -158,7 +158,13 @@ func (c *ConfigurationFile) GetNodesConf(nodeName string, policiesList api.IPsec
 					}
 
 					// Capture Service IP of the nodes
-					localServiceEndpointAddresses, err := utility.GetServiceAddresses(nodeName, policy.ServiceName, policy.ServiceNS, ipVersion)
+					localServiceEndpointAddresses, err := utility.GetServiceAddresses(
+						nodeName,
+						policy.ServiceName,
+						policy.ServiceNS,
+						ipVersion,
+					)
+
 					if err != nil {
 						if client.IgnoreNotFound(err) == nil {
 							log.Info("Warning: Service not found", "Node", node.Hostname,
@@ -173,7 +179,13 @@ func (c *ConfigurationFile) GetNodesConf(nodeName string, policiesList api.IPsec
 						nodeName, policy.ServiceName, policy.ServiceNS, localServiceEndpointAddresses))
 					c.ServiceEndpointAddresses = localServiceEndpointAddresses
 
-					nodeServiceEndpointAddresses, err := utility.GetServiceAddresses(node.Hostname, policy.ServiceName, policy.ServiceNS, ipVersion)
+					nodeServiceEndpointAddresses, err := utility.GetServiceAddresses(
+						node.Hostname,
+						policy.ServiceName,
+						policy.ServiceNS,
+						ipVersion,
+					)
+
 					if err != nil {
 						if client.IgnoreNotFound(err) == nil {
 							log.Info("Warning: Service not found", "Node", node.Hostname,
@@ -202,7 +214,11 @@ func (c *ConfigurationFile) GetNodesConf(nodeName string, policiesList api.IPsec
 						continue
 					}
 
-					portProtocols := utility.ProtectedPortsAndProtocols(policy.ServiceName, policyPortProtocols, servicePortProtocols)
+					portProtocols := utility.ProtectedPortsAndProtocols(
+						policy.ServiceName,
+						policyPortProtocols,
+						servicePortProtocols,
+					)
 
 					// ChildrenName: udp_serviceName_[egress|ingress]
 					for _, portProtocol := range portProtocols {

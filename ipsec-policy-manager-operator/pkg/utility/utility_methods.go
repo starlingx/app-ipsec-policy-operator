@@ -101,7 +101,7 @@ func GetPolicyPorts(servicePorts string) []PortProtocol {
 		servicePort = strings.Trim(servicePort, " ")
 		portInfo := strings.Split(servicePort, "/")
 		protocol := portInfo[0]
-		if ContainsProtocol(portProtocols, protocol) == false {
+		if !ContainsProtocol(portProtocols, protocol) {
 			var portProt PortProtocol
 			portProt.Protocol = protocol
 			portProtocols = append(portProtocols, portProt)
@@ -110,7 +110,7 @@ func GetPolicyPorts(servicePorts string) []PortProtocol {
 		for i := range portProtocols {
 			if portProtocols[i].Protocol == portInfo[0] {
 				port, _ := strconv.ParseInt(portInfo[1], 10, 64)
-				if ContainsPort(portProtocols[i].Ports, port) == false {
+				if !ContainsPort(portProtocols[i].Ports, port) {
 					portProtocols[i].Ports = append(portProtocols[i].Ports, port)
 				}
 			}
@@ -158,7 +158,7 @@ func GetServicePorts(serviceName string, serviceNamespace string) ([]PortProtoco
 					if portNum, ok := portMap["port"].(int64); ok {
 						if protocol, ok := portMap["protocol"].(string); ok {
 							prot := strings.ToLower(protocol)
-							if ContainsProtocol(portProtocols, prot) == false {
+							if !ContainsProtocol(portProtocols, prot) {
 								var portProt PortProtocol
 								portProt.Protocol = prot
 								portProtocols = append(portProtocols, portProt)
@@ -166,7 +166,7 @@ func GetServicePorts(serviceName string, serviceNamespace string) ([]PortProtoco
 
 							for i := range portProtocols {
 								if portProtocols[i].Protocol == prot {
-									if ContainsPort(portProtocols[i].Ports, portNum) == false {
+									if !ContainsPort(portProtocols[i].Ports, portNum) {
 										portProtocols[i].Ports = append(portProtocols[i].Ports, portNum)
 									}
 								}
@@ -184,17 +184,18 @@ func GetServicePorts(serviceName string, serviceNamespace string) ([]PortProtoco
 // ProtectedPortsAndProtocols validates and protect misconfigurations in the
 // protocols/ports specified by the user. It returns a list of protocol/ports
 // that user specified in policies to protect for the service.
-func ProtectedPortsAndProtocols(serviceName string, policyPortProtocols []PortProtocol, servicePortProtocols []PortProtocol) []PortProtocol {
+func ProtectedPortsAndProtocols(serviceName string, policyPortProtocols []PortProtocol,
+	servicePortProtocols []PortProtocol) []PortProtocol {
 	ctx := context.Background()
 	log := log.FromContext(ctx)
 	var portProtocols []PortProtocol
 	for _, policyPortProtocol := range policyPortProtocols {
-		if ContainsProtocol(servicePortProtocols, policyPortProtocol.Protocol) == true {
+		if ContainsProtocol(servicePortProtocols, policyPortProtocol.Protocol) {
 			for _, servicePortProtocol := range servicePortProtocols {
 				if policyPortProtocol.Protocol == servicePortProtocol.Protocol {
 					for _, policyPort := range policyPortProtocol.Ports {
 						if ContainsPort(servicePortProtocol.Ports, policyPort) {
-							if ContainsProtocol(portProtocols, policyPortProtocol.Protocol) == false {
+							if !ContainsProtocol(portProtocols, policyPortProtocol.Protocol) {
 								var portProt PortProtocol
 								portProt.Protocol = policyPortProtocol.Protocol
 								portProtocols = append(portProtocols, portProt)
@@ -202,7 +203,7 @@ func ProtectedPortsAndProtocols(serviceName string, policyPortProtocols []PortPr
 
 							for i := range portProtocols {
 								if portProtocols[i].Protocol == policyPortProtocol.Protocol {
-									if ContainsPort(portProtocols[i].Ports, policyPort) == false {
+									if !ContainsPort(portProtocols[i].Ports, policyPort) {
 										portProtocols[i].Ports = append(portProtocols[i].Ports, policyPort)
 									}
 								}
@@ -215,7 +216,11 @@ func ProtectedPortsAndProtocols(serviceName string, policyPortProtocols []PortPr
 				}
 			}
 		} else {
-			log.Info(fmt.Sprintf("Service: %v - Protocol: %v not configured in the service\n", serviceName, policyPortProtocol.Protocol))
+			log.Info(fmt.Sprintf(
+				"Service: %v - Protocol: %v not configured in the service\n",
+				serviceName,
+				policyPortProtocol.Protocol,
+			))
 		}
 	}
 
@@ -225,7 +230,8 @@ func ProtectedPortsAndProtocols(serviceName string, policyPortProtocols []PortPr
 // GetServiceAddress gets the slice of IP addresses in EndpointSlices for a specific
 // Node using the service's Name and Namespace. It returns a list of IP addresses based
 // on the specific IP version
-func GetServiceAddresses(nodeName string, serviceName string, serviceNamespace string, ipVersion string) ([]string, error) {
+func GetServiceAddresses(nodeName string, serviceName string, serviceNamespace string,
+	ipVersion string) ([]string, error) {
 	var (
 		rEndpointSlices = kubernetes.K8sResource{
 			ApiGroup:   "discovery.k8s.io",

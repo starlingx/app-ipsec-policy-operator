@@ -116,11 +116,13 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		if client.IgnoreNotFound(err) == nil {
 			nodeAdded = false
 			configMapName := kubernetes.IPsecConfigMapPrefix + req.Name
-			kubernetes.DeleteConfigMap(r.Client, kubernetes.OperatorNamespace, configMapName)
+			if err = kubernetes.DeleteConfigMap(r.Client, kubernetes.OperatorNamespace, configMapName); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 	}
 
-	if nodeAdded && kubernetes.IsBlockaffinityConfigured(node.Name) == false {
+	if nodeAdded && !kubernetes.IsBlockaffinityConfigured(node.Name) {
 		log.Info("BlockAffinity not set yet, requeuing", "Node", node.Name)
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
