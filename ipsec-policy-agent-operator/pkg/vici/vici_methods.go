@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	govici "github.com/strongswan/govici/vici"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -36,12 +37,15 @@ func TerminateConnection(name string) error {
 		_ = session.Close()
 	}()
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	msg := govici.NewMessage()
 	if err := msg.Set("ike", name); err != nil {
 		return err
 	}
 
-	if _, err := session.CommandRequest("terminate", msg); err != nil {
+	if _, err := session.Call(ctx, "terminate", msg); err != nil {
 		return fmt.Errorf("terminate failed: %w", err)
 	}
 
@@ -59,12 +63,15 @@ func UnloadConnection(name string) error {
 		_ = session.Close()
 	}()
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	msg := govici.NewMessage()
 	if err := msg.Set("name", name); err != nil {
 		return err
 	}
 
-	if _, err := session.CommandRequest("unload-conn", msg); err != nil {
+	if _, err := session.Call(ctx, "unload-conn", msg); err != nil {
 		return fmt.Errorf("unload-conn failed: %w", err)
 	}
 
@@ -130,7 +137,10 @@ func LoadConnections(connections ...any) ([]*govici.Message, error) {
 			break
 		}
 
-		request, _ := session.CommandRequest("load-conn", m)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		request, _ := session.Call(ctx, "load-conn", m)
 		if err := request.Err(); err != nil {
 			log.Error(err, fmt.Sprintf("Failed load connection %s: %v\n", connName, request.Get("errmsg")))
 		}
