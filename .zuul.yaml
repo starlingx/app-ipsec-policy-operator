@@ -33,7 +33,6 @@
     required-projects:
       - starlingx/config
       - starlingx/fault
-      - starlingx/update
       - starlingx/utilities
       - starlingx/root
     files:
@@ -51,7 +50,6 @@
     required-projects:
       - starlingx/config
       - starlingx/fault
-      - starlingx/update
       - starlingx/utilities
       - starlingx/root
     files:
@@ -70,7 +68,6 @@
     required-projects:
       - starlingx/config
       - starlingx/fault
-      - starlingx/update
       - starlingx/utilities
       - starlingx/root
     vars:
@@ -87,7 +84,6 @@
     required-projects:
       - starlingx/config
       - starlingx/fault
-      - starlingx/update
       - starlingx/utilities
       - starlingx/root
     files:
@@ -106,7 +102,6 @@
     required-projects:
       - starlingx/config
       - starlingx/fault
-      - starlingx/update
       - starlingx/utilities
       - starlingx/root
     files:
