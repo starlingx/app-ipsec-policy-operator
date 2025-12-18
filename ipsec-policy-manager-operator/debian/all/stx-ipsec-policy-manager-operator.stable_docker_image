@@ -1,4 +1,4 @@
 BUILDER=docker
-DOCKER_FILE=../Dockerfile
-DOCKER_CONTEXT=..
+DOCKER_FILE=../../Dockerfile
+DOCKER_CONTEXT=../..
 LABEL=stx-ipsec-policy-manager-operator
