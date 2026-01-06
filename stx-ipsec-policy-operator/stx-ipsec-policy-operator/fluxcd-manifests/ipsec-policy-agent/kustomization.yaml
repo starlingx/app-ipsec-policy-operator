@@ -1,0 +1,12 @@
+namespace: ipsec-policy-operator
+resources:
+- helmrelease.yaml
+secretGenerator:
+  - name: ipsec-policy-agent-static-overrides
+    files:
+      - ipsec-policy-agent-static-overrides.yaml
+  - name: ipsec-policy-agent-system-overrides
+    files:
+      - ipsec-policy-agent-system-overrides.yaml
+generatorOptions:
+  disableNameSuffixHash: true

@@ -1,0 +1,31 @@
+apiVersion: starlingx.io/v1
+kind: IPsecPolicy
+metadata:
+  labels:
+    app.kubernetes.io/name: ipsec-policy-manager-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: ipsecpolicy-kube-dns-cert-manager-sample
+spec:
+  policies:
+    - name: kube-dns
+      servicename: kube-dns
+      servicens: kube-system
+      serviceports: tcp/53,udp/53,tcp/9153
+    - name: cert-manager
+      servicename: cm-cert-manager
+      servicens: cert-manager
+      serviceports: tcp/9402
+---
+apiVersion: starlingx.io/v1
+kind: IPsecPolicy
+metadata:
+  labels:
+    app.kubernetes.io/name: ipsec-policy-manager-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: ipsecpolicy-flux-sample
+spec:
+  policies:
+    - name: flux app
+      servicename: source-controller
+      servicens: flux-helm
+      serviceports: tcp/9090

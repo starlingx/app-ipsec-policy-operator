@@ -1,0 +1,30 @@
+apiVersion: "helm.toolkit.fluxcd.io/v2"
+kind: HelmRelease
+metadata:
+  name: ipsec-policy-manager
+  labels:
+    chart_group: ipsec-policy-operator-charts
+spec:
+  releaseName: ipsec-policy-manager
+  chart:
+    spec:
+      chart: ipsec-policy-manager
+      version: REPLACE_HELM_CHART_VERSION
+      sourceRef:
+        kind: HelmRepository
+        name: stx-platform
+  interval: 1m
+  timeout: 30m
+  test:
+    enable: false
+  install:
+    disableHooks: false
+  upgrade:
+    disableHooks: false
+  valuesFrom:
+    - kind: Secret
+      name: ipsec-policy-manager-static-overrides
+      valuesKey: ipsec-policy-manager-static-overrides.yaml
+    - kind: Secret
+      name: ipsec-policy-manager-system-overrides
+      valuesKey: ipsec-policy-manager-system-overrides.yaml

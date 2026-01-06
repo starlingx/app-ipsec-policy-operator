@@ -1,0 +1,12 @@
+global:
+  imagePullSecrets: [{"name": "default-registry-key"}]
+controllerManager:
+  kubeRbacProxy:
+    image:
+      repository: gcr.io/kubebuilder/kube-rbac-proxy
+      tag: v0.16.0
+  manager:
+    image:
+      repository: docker.io/starlingx/stx-ipsec-policy-manager-operator
+      tag: stx.12.0-v1.0.0
+    replicas: 1

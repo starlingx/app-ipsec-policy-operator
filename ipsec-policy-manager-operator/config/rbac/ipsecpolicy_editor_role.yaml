@@ -1,0 +1,27 @@
+# permissions for end users to edit ipsecpolicies.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: ipsec-policy-manager-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: ipsecpolicy-editor-role
+rules:
+- apiGroups:
+  - starlingx.io
+  resources:
+  - ipsecpolicies
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - starlingx.io
+  resources:
+  - ipsecpolicies/status
+  verbs:
+  - get

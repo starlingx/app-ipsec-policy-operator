@@ -1,0 +1,554 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: ipsec-policy-manager-operator
+    control-plane: controller-manager
+  name: ipsec-policy-operator
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: ipsec-policy-operator/ipsec-policy-manager-serving-cert
+    controller-gen.kubebuilder.io/version: v0.14.0
+  name: ipsecpolicies.starlingx.io
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: ipsec-policy-manager-webhook-service
+          namespace: ipsec-policy-operator
+          path: /convert
+      conversionReviewVersions:
+      - v1
+  group: starlingx.io
+  names:
+    kind: IPsecPolicy
+    listKind: IPsecPolicyList
+    plural: ipsecpolicies
+    singular: ipsecpolicy
+  scope: Cluster
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: IPsecPolicy is the Schema for the ipsecpolicies API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: IPsecPolicySpec defines the desired state of IPsecPolicy
+            properties:
+              policies:
+                items:
+                  description: |-
+                    Policy defines the structure to configure an IPsec policy through
+                    the Service info and its protocols and ports to be protected.
+                  properties:
+                    name:
+                      type: string
+                    servicename:
+                      type: string
+                    servicens:
+                      type: string
+                    serviceports:
+                      type: string
+                  required:
+                  - name
+                  - servicename
+                  - servicens
+                  - serviceports
+                  type: object
+                type: array
+            required:
+            - policies
+            type: object
+          status:
+            description: IPsecPolicyStatus defines the observed state of IPsecPolicy
+            properties:
+              status:
+                type: string
+            required:
+            - status
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: ipsec-policy-manager-operator
+  name: ipsec-policy-manager-controller-manager
+  namespace: ipsec-policy-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: ipsec-policy-manager-operator
+  name: ipsec-policy-manager-leader-election-role
+  namespace: ipsec-policy-operator
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: ipsec-policy-manager-operator
+  name: ipsec-policy-manager-ipsecpolicy-editor-role
+rules:
+- apiGroups:
+  - starlingx.io
+  resources:
+  - ipsecpolicies
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - starlingx.io
+  resources:
+  - ipsecpolicies/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: ipsec-policy-manager-operator
+  name: ipsec-policy-manager-ipsecpolicy-viewer-role
+rules:
+- apiGroups:
+  - starlingx.io
+  resources:
+  - ipsecpolicies
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - starlingx.io
+  resources:
+  - ipsecpolicies/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ipsec-policy-manager-manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - endpoints
+  - pods
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - crd.projectcalico.org
+  resources:
+  - blockaffinities
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - discovery.k8s.io
+  resources:
+  - endpointslices
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - starlingx.io
+  resources:
+  - ipsecpolicies
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - starlingx.io
+  resources:
+  - ipsecpolicies/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - starlingx.io
+  resources:
+  - ipsecpolicies/status
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: ipsec-policy-manager-operator
+  name: ipsec-policy-manager-metrics-reader
+rules:
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: ipsec-policy-manager-operator
+  name: ipsec-policy-manager-proxy-role
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: ipsec-policy-manager-operator
+  name: ipsec-policy-manager-leader-election-rolebinding
+  namespace: ipsec-policy-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ipsec-policy-manager-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: ipsec-policy-manager-controller-manager
+  namespace: ipsec-policy-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: ipsec-policy-manager-operator
+  name: ipsec-policy-manager-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: ipsec-policy-manager-manager-role
+subjects:
+- kind: ServiceAccount
+  name: ipsec-policy-manager-controller-manager
+  namespace: ipsec-policy-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: ipsec-policy-manager-operator
+  name: ipsec-policy-manager-proxy-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: ipsec-policy-manager-proxy-role
+subjects:
+- kind: ServiceAccount
+  name: ipsec-policy-manager-controller-manager
+  namespace: ipsec-policy-operator
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: ipsec-policy-manager-operator
+    control-plane: controller-manager
+  name: ipsec-policy-manager-controller-manager-metrics-service
+  namespace: ipsec-policy-operator
+spec:
+  ports:
+  - name: https
+    port: 8443
+    protocol: TCP
+    targetPort: https
+  selector:
+    control-plane: controller-manager
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: ipsec-policy-manager-operator
+  name: ipsec-policy-manager-webhook-service
+  namespace: ipsec-policy-operator
+spec:
+  ports:
+  - port: 443
+    protocol: TCP
+    targetPort: 9443
+  selector:
+    webhook: enabled
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: ipsec-policy-manager-operator
+    control-plane: controller-manager
+  name: ipsec-policy-manager-controller-manager
+  namespace: ipsec-policy-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+      labels:
+        control-plane: controller-manager
+        webhook: enabled
+    spec:
+      containers:
+      - args:
+        - --health-probe-bind-address=:8081
+        - --metrics-bind-address=127.0.0.1:8080
+        - --leader-elect
+        command:
+        - /manager
+        image: starlingx/stx-ipsec-policy-manager-operator:master-debian-stable-latest
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: manager
+        ports:
+        - containerPort: 9443
+          name: webhook-server
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: cert
+          readOnly: true
+      - args:
+        - --secure-listen-address=0.0.0.0:8443
+        - --upstream=http://127.0.0.1:8080/
+        - --logtostderr=true
+        - --v=0
+        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.16.0
+        name: kube-rbac-proxy
+        ports:
+        - containerPort: 8443
+          name: https
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 5m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      securityContext:
+        runAsGroup: 0
+        runAsUser: 0
+      serviceAccountName: ipsec-policy-manager-controller-manager
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: webhook-server-cert
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    app.kubernetes.io/component: certificate
+    app.kubernetes.io/created-by: ipsec-policy-manager-operator
+    app.kubernetes.io/instance: serving-cert
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: certificate
+    app.kubernetes.io/part-of: ipsec-policy-manager-operator
+  name: ipsec-policy-manager-serving-cert
+  namespace: ipsec-policy-operator
+spec:
+  dnsNames:
+  - ipsec-policy-manager-webhook-service.ipsec-policy-operator.svc
+  - ipsec-policy-manager-webhook-service.ipsec-policy-operator.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: ipsec-policy-manager-selfsigned-issuer
+  secretName: webhook-server-cert
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: ipsec-policy-manager-operator
+  name: ipsec-policy-manager-selfsigned-issuer
+  namespace: ipsec-policy-operator
+spec:
+  selfSigned: {}
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: ipsec-policy-operator/ipsec-policy-manager-serving-cert
+  labels:
+    app.kubernetes.io/component: webhook
+    app.kubernetes.io/created-by: ipsec-policy-manager-operator
+    app.kubernetes.io/instance: validating-webhook-configuration
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: validatingwebhookconfiguration
+    app.kubernetes.io/part-of: ipsec-policy-manager-operator
+  name: ipsec-policy-manager-validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: ipsec-policy-manager-webhook-service
+      namespace: ipsec-policy-operator
+      path: /validate-starlingx-io-v1-ipsecpolicy
+  failurePolicy: Fail
+  name: vipsecpolicy.kb.io
+  rules:
+  - apiGroups:
+    - starlingx.io
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - ipsecpolicies
+  sideEffects: None
