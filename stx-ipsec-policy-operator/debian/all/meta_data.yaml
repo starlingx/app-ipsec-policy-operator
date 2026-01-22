@@ -3,6 +3,7 @@ debname: stx-ipsec-policy-operator
 debver: 1.0-0
 src_path: stx-ipsec-policy-operator
 revision:
+  stx_patch: 0
   dist: $STX_DIST
   GITREVCOUNT:
     SRC_DIR: ${MY_REPO}/stx/app-ipsec-policy-operator
