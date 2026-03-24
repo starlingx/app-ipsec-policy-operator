@@ -13,9 +13,30 @@ export CHART_VERSION = $(RELEASE).$(REVISION)
 	dh $@
 
 override_dh_auto_build:
+	# Image tag substitution defaults
+	$(eval PLATFORM_REGISTRY ?= docker.io/starlingx)
+	$(eval OS ?= debian)
+	$(eval OS_CODENAME ?= bullseye)
+	$(eval OS_ARCH ?= amd64)
+	$(eval BUILD_STREAM ?= stable)
+	$(eval IMAGE_PREFIX ?= master)
+	$(eval IMAGE_SUFFIX ?= latest)
+
 	mkdir -p build
 	# Copy ipsec-policy-manager items.
 	mv Makefile ipsec-policy-manager build
+
+	# Substitute image tags in helm chart values
+	sed -i \
+		-e 's|@PLATFORM_REGISTRY@|$(PLATFORM_REGISTRY)|g' \
+		-e 's|@OS@|$(OS)|g' \
+		-e 's|@OS_CODENAME@|$(OS_CODENAME)|g' \
+		-e 's|@OS_ARCH@|$(OS_ARCH)|g' \
+		-e 's|@BUILD_STREAM@|$(BUILD_STREAM)|g' \
+		-e 's|@IMAGE_PREFIX@|$(IMAGE_PREFIX)|g' \
+		-e 's|@IMAGE_SUFFIX@|$(IMAGE_SUFFIX)|g' \
+		build/ipsec-policy-manager/values.yaml
+
 	# Build the chart
 	cd build && make CHART_VERSION=$(CHART_VERSION) ipsec-policy-manager
 

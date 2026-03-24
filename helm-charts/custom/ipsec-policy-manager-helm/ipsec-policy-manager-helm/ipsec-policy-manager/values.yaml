@@ -5,8 +5,8 @@ controllerManager:
       tag: v0.16.0
   manager:
     image:
-      repository: docker.io/starlingx/stx-ipsec-policy-manager-operator
-      tag: master-debian-stable-latest
+      repository: @PLATFORM_REGISTRY@/stx-ipsec-policy-manager-operator
+      tag: @IMAGE_PREFIX@-@OS@-@OS_CODENAME@-@OS_ARCH@-@BUILD_STREAM@-@IMAGE_SUFFIX@
     replicas: 1
   nodeSelector:
     node-role.kubernetes.io/control-plane: ""
