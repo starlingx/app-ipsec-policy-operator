@@ -5,8 +5,8 @@ controllerManager:
       tag: v0.16.0
   manager:
     image:
-      repository: docker.io/starlingx/stx-ipsec-policy-agent-operator
-      tag: master-debian-stable-latest
+      repository: @PLATFORM_REGISTRY@/stx-ipsec-policy-agent-operator
+      tag: @IMAGE_PREFIX@-@OS@-@OS_CODENAME@-@OS_ARCH@-@BUILD_STREAM@-@IMAGE_SUFFIX@
   nodeSelector:
     ipsec-policy-agent-operator: enabled
   tolerations:
