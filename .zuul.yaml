@@ -8,8 +8,16 @@
         - k8sapp-ipsec-policy-operator-tox-pylint
         - k8sapp-ipsec-policy-operator-tox-metadata
         - k8sapp-ipsec-policy-operator-tox-bandit
+        - k8sapp-ipsec-policy-operator-tox-coverage
+        - k8sapp-ipsec-policy-operator-tox-security
+        - k8sapp-ipsec-policy-operator-tox-coverage-go
         - stx-ipsec-policy-manager-operator-tox-go-lint
         - stx-ipsec-policy-agent-operator-tox-go-lint
+        - k8sapp-ipsec-policy-operator-tox-py313
+        - k8sapp-ipsec-policy-operator-tox-coverage-trixie
+        - k8sapp-ipsec-policy-operator-tox-security-trixie
+        - k8sapp-ipsec-policy-operator-tox-flake8-trixie
+        - k8sapp-ipsec-policy-operator-tox-pylint-trixie
     gate:
       jobs:
         - openstack-tox-linters
@@ -18,6 +26,14 @@
         - k8sapp-ipsec-policy-operator-tox-pylint
         - k8sapp-ipsec-policy-operator-tox-metadata
         - k8sapp-ipsec-policy-operator-tox-bandit
+        - k8sapp-ipsec-policy-operator-tox-coverage
+        - k8sapp-ipsec-policy-operator-tox-security
+        - k8sapp-ipsec-policy-operator-tox-py313
+        - k8sapp-ipsec-policy-operator-tox-coverage-trixie
+        - k8sapp-ipsec-policy-operator-tox-security-trixie
+        - k8sapp-ipsec-policy-operator-tox-flake8-trixie
+        - k8sapp-ipsec-policy-operator-tox-pylint-trixie
+        - k8sapp-ipsec-policy-operator-tox-coverage-go
         - stx-ipsec-policy-manager-operator-tox-go-lint
         - stx-ipsec-policy-agent-operator-tox-go-lint
     post:
@@ -59,6 +75,9 @@
       tox_extra_args: -c python3-k8sapp-ipsec-policy-operator/k8sapp_ipsec_policy_operator/tox.ini
       tox_constraints_file: '{{ ansible_user_dir }}/src/opendev.org/starlingx/root/build-tools/requirements/debian/upper-constraints.txt'
 
+# NOTE: A Trixie-specific metadata job is not needed because the metadata
+# test validates app metadata YAML structure which is Python-version agnostic.
+# It does not depend on Python runtime behavior that differs between 3.9/3.13.
 - job:
     name: k8sapp-ipsec-policy-operator-tox-metadata
     parent: tox
@@ -112,6 +131,98 @@
       tox_constraints_file: '{{ ansible_user_dir }}/src/opendev.org/starlingx/root/build-tools/requirements/debian/upper-constraints.txt'
 
 - job:
+    name: k8sapp-ipsec-policy-operator-tox-py313
+    parent: tox
+    description: |
+      Run py313 for k8sapp-ipsec-policy-operator
+    nodeset: debian-trixie-8GB
+    required-projects:
+      - starlingx/config
+      - starlingx/fault
+      - starlingx/utilities
+      - starlingx/root
+    files:
+      - python3-k8sapp-ipsec-policy-operator/*
+    vars:
+      tox_envlist: py313
+      tox_extra_args: -c python3-k8sapp-ipsec-policy-operator/k8sapp_ipsec_policy_operator/tox.ini
+      tox_constraints_file: '{{ ansible_user_dir }}/src/opendev.org/starlingx/root/build-tools/requirements/debian/trixie/upper-constraints.txt'
+
+- job:
+    name: k8sapp-ipsec-policy-operator-tox-coverage-trixie
+    parent: tox
+    description: |
+      Run coverage analysis for k8sapp-ipsec-policy-operator (Trixie)
+    nodeset: debian-trixie-8GB
+    required-projects:
+      - starlingx/config
+      - starlingx/fault
+      - starlingx/utilities
+      - starlingx/root
+    files:
+      - python3-k8sapp-ipsec-policy-operator/*
+    vars:
+      tox_envlist: coverage-trixie
+      tox_extra_args: -c python3-k8sapp-ipsec-policy-operator/k8sapp_ipsec_policy_operator/tox.ini
+      tox_constraints_file: '{{ ansible_user_dir }}/src/opendev.org/starlingx/root/build-tools/requirements/debian/trixie/upper-constraints.txt'
+    post-run: playbooks/upload-coverage-reports.yaml
+
+- job:
+    name: k8sapp-ipsec-policy-operator-tox-security-trixie
+    parent: tox
+    description: |
+      Run security analysis for k8sapp-ipsec-policy-operator (Trixie)
+    nodeset: debian-trixie-8GB
+    required-projects:
+      - starlingx/config
+      - starlingx/fault
+      - starlingx/utilities
+      - starlingx/root
+    files:
+      - python3-k8sapp-ipsec-policy-operator/*
+    vars:
+      tox_envlist: security-trixie
+      tox_extra_args: -c python3-k8sapp-ipsec-policy-operator/k8sapp_ipsec_policy_operator/tox.ini
+      tox_constraints_file: '{{ ansible_user_dir }}/src/opendev.org/starlingx/root/build-tools/requirements/debian/trixie/upper-constraints.txt'
+    post-run: playbooks/upload-security-reports.yaml
+
+- job:
+    name: k8sapp-ipsec-policy-operator-tox-flake8-trixie
+    parent: tox
+    description: |
+      Run flake8 test for k8sapp-ipsec-policy-operator (Trixie)
+    nodeset: debian-trixie-8GB
+    required-projects:
+      - starlingx/config
+      - starlingx/fault
+      - starlingx/utilities
+      - starlingx/root
+    files:
+      - python3-k8sapp-ipsec-policy-operator/*
+    vars:
+      tox_envlist: flake8-trixie
+      tox_extra_args: -c python3-k8sapp-ipsec-policy-operator/k8sapp_ipsec_policy_operator/tox.ini
+      tox_constraints_file: '{{ ansible_user_dir }}/src/opendev.org/starlingx/root/build-tools/requirements/debian/trixie/upper-constraints.txt'
+
+- job:
+    name: k8sapp-ipsec-policy-operator-tox-pylint-trixie
+    parent: tox
+    description: |
+      Run pylint test for k8sapp-ipsec-policy-operator (Trixie)
+    nodeset: debian-trixie-8GB
+    required-projects:
+      - starlingx/config
+      - starlingx/fault
+      - starlingx/utilities
+      - starlingx/root
+    files:
+      - python3-k8sapp-ipsec-policy-operator/*
+    vars:
+      tox_envlist: pylint-trixie
+      tox_extra_args: -c python3-k8sapp-ipsec-policy-operator/k8sapp_ipsec_policy_operator/tox.ini
+      tox_constraints_file: '{{ ansible_user_dir }}/src/opendev.org/starlingx/root/build-tools/requirements/debian/trixie/upper-constraints.txt'
+
+- job:
     name: stx-app-ipsec-policy-operator-upload-git-mirror
     parent: upload-git-mirror
     description: >
@@ -143,6 +254,61 @@
       go_version: 1.25.11
       golangci_lint_version: 2.4.0
       zuul_work_dir: "{{ zuul.project.src_dir }}/ipsec-policy-agent-operator"
+
+- job:
+    name: k8sapp-ipsec-policy-operator-tox-coverage
+    parent: tox
+    description: |
+      Run coverage analysis for k8sapp-ipsec-policy-operator
+    nodeset: debian-bullseye
+    required-projects:
+      - starlingx/config
+      - starlingx/fault
+      - starlingx/utilities
+      - starlingx/root
+    files:
+      - python3-k8sapp-ipsec-policy-operator/*
+    vars:
+      tox_envlist: coverage
+      tox_extra_args: -c python3-k8sapp-ipsec-policy-operator/k8sapp_ipsec_policy_operator/tox.ini
+      tox_constraints_file: '{{ ansible_user_dir }}/src/opendev.org/starlingx/root/build-tools/requirements/debian/upper-constraints.txt'
+    post-run: playbooks/upload-coverage-reports.yaml
+
+- job:
+    name: k8sapp-ipsec-policy-operator-tox-security
+    parent: tox
+    description: |
+      Run security analysis for k8sapp-ipsec-policy-operator
+    nodeset: debian-bullseye
+    required-projects:
+      - starlingx/config
+      - starlingx/fault
+      - starlingx/utilities
+      - starlingx/root
+    files:
+      - python3-k8sapp-ipsec-policy-operator/*
+    vars:
+      tox_envlist: security
+      tox_extra_args: -c python3-k8sapp-ipsec-policy-operator/k8sapp_ipsec_policy_operator/tox.ini
+      tox_constraints_file: '{{ ansible_user_dir }}/src/opendev.org/starlingx/root/build-tools/requirements/debian/upper-constraints.txt'
+    post-run: playbooks/upload-security-reports.yaml
+
+- job:
+    name: k8sapp-ipsec-policy-operator-tox-coverage-go
+    parent: tox
+    description: |
+      Run Go coverage analysis for ipsec-policy operators (skips if Go not installed)
+    nodeset: debian-bullseye
+    required-projects:
+      - starlingx/config
+      - starlingx/fault
+      - starlingx/utilities
+      - starlingx/root
+    vars:
+      tox_envlist: coverage-go
+      tox_extra_args: -c python3-k8sapp-ipsec-policy-operator/k8sapp_ipsec_policy_operator/tox.ini
+      tox_constraints_file: '{{ ansible_user_dir }}/src/opendev.org/starlingx/root/build-tools/requirements/debian/upper-constraints.txt'
+    post-run: playbooks/upload-coverage-reports.yaml
 
 - secret:
     name: stx-app-ipsec-policy-operator-github-secret3
