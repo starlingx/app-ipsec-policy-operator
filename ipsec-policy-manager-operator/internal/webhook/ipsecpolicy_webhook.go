@@ -22,7 +22,6 @@ import (
 	"strconv"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -40,8 +39,7 @@ type IPsecPolicyValidator struct {
 
 // SetupWebhookWithManager will setup the manager to manage the webhooks
 func (r *IPsecPolicyValidator) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&api.IPsecPolicy{}).
+	return ctrl.NewWebhookManagedBy(mgr, &api.IPsecPolicy{}).
 		WithValidator(r).
 		Complete()
 }
@@ -134,18 +132,14 @@ func isValidServicePortAndProtocol(newPolicy api.Policy) (bool, error) {
 //+kubebuilder:webhook:path=/validate-starlingx-io-v1-ipsecpolicy,mutating=false,failurePolicy=fail,sideEffects=None,groups=starlingx.io,resources=ipsecpolicies,verbs=create;update,versions=v1,name=vipsecpolicy.kb.io,admissionReviewVersions=v1
 
 // ValidateCreate checks for existing objects with the same name.
-func (r *IPsecPolicyValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	newPolicies, ok := obj.(*api.IPsecPolicy)
-	if !ok {
-		return nil, fmt.Errorf("expected IPsecPolicy, got %T", obj)
-	}
+func (r *IPsecPolicyValidator) ValidateCreate(ctx context.Context, obj *api.IPsecPolicy) (admission.Warnings, error) {
 
 	var policiesList api.IPsecPolicyList
 	if err := r.Client.List(ctx, &policiesList); err != nil {
 		return nil, err
 	}
 
-	for _, newPolicy := range newPolicies.Spec.Policies {
+	for _, newPolicy := range obj.Spec.Policies {
 		if ret, err := isDuplicateService(newPolicy, policiesList); ret {
 			return nil, err
 		}
@@ -163,19 +157,15 @@ func (r *IPsecPolicyValidator) ValidateCreate(ctx context.Context, obj runtime.O
 		}
 	}
 
-	ipsecpolicylog.Info("Validated create for", "name", newPolicies.Name)
+	ipsecpolicylog.Info("Validated create for", "name", obj.Name)
 
 	return nil, nil
 }
 
 // ValidateUpdate ensures updates are valid.
-func (r *IPsecPolicyValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	newPolicies, ok := newObj.(*api.IPsecPolicy)
-	if !ok {
-		return nil, fmt.Errorf("expected IPsecPolicy, got %T", newObj)
-	}
+func (r *IPsecPolicyValidator) ValidateUpdate(ctx context.Context, oldObj, newObj *api.IPsecPolicy) (admission.Warnings, error) {
 
-	for _, newPolicy := range newPolicies.Spec.Policies {
+	for _, newPolicy := range newObj.Spec.Policies {
 		if ret, err := isValidProtocol(newPolicy); !ret {
 			return nil, err
 		}
@@ -189,19 +179,14 @@ func (r *IPsecPolicyValidator) ValidateUpdate(ctx context.Context, oldObj, newOb
 		}
 	}
 
-	ipsecpolicylog.Info("Validated update for", "name", newPolicies.Name)
+	ipsecpolicylog.Info("Validated update for", "name", newObj.Name)
 
 	return nil, nil
 }
 
 // ValidateDelete always allows deletion (or you can add checks).
-func (r *IPsecPolicyValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	policies, ok := obj.(*api.IPsecPolicy)
-	if !ok {
-		return nil, fmt.Errorf("expected IPsecPolicy, got %T", obj)
-	}
-
-	ipsecpolicylog.Info("Validated delete for", "name", policies.Name)
+func (r *IPsecPolicyValidator) ValidateDelete(ctx context.Context, obj *api.IPsecPolicy) (admission.Warnings, error) {
+	ipsecpolicylog.Info("Validated delete for", "name", obj.Name)
 
 	return nil, nil
 }

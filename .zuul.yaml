@@ -130,8 +130,8 @@
     description: |
             Run go linting for ipsec-policy-manager-operator
     vars:
-      go_version: 1.24.3
-      golangci_lint_version: 2.1.6
+      go_version: 1.25.11
+      golangci_lint_version: 2.4.0
       zuul_work_dir: "{{ zuul.project.src_dir }}/ipsec-policy-manager-operator"
 
 - job:
@@ -140,8 +140,8 @@
     description: |
             Run go linting for ipsec-policy-agent-operator
     vars:
-      go_version: 1.24.3
-      golangci_lint_version: 2.1.6
+      go_version: 1.25.11
+      golangci_lint_version: 2.4.0
       zuul_work_dir: "{{ zuul.project.src_dir }}/ipsec-policy-agent-operator"
 
 - secret:
