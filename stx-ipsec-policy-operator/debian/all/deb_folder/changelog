@@ -1,3 +1,10 @@
+stx-ipsec-policy-operator (1.0-1) unstable; urgency=medium
+
+  * Use @OS_CODENAME@ placeholder for image tags so it resolves
+    to OS-specific (bullseye/trixie) published tags at build time.
+
+ -- Marcelo Melo <Marcelo.CorreadeAraujoPedrosadeMelo@windriver.com>  Mon, 16 Jun 2026 15:00:00 +0000
+
 stx-ipsec-policy-operator (1.0-0) unstable; urgency=medium
 
   * Initial release.

@@ -23,6 +23,12 @@ override_dh_auto_build:
 	mkdir -p $(STAGING)
 	cp files/metadata.yaml $(STAGING)
 	cp -Rv fluxcd-manifests $(STAGING)
+
+	# Substitute @OS_CODENAME@ in static-overrides
+	$(eval OS_CODENAME ?= $(shell lsb_release -cs))
+	find $(STAGING)/fluxcd-manifests -name '*.yaml' -exec \
+		sed -i -e 's|@OS_CODENAME@|$(OS_CODENAME)|g' {} +
+
 	mkdir -p $(STAGING)/charts
 	cp /usr/lib/helm/*.tgz $(STAGING)/charts
 

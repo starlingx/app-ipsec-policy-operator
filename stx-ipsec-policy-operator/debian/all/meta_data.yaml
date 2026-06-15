@@ -1,6 +1,6 @@
 ---
 debname: stx-ipsec-policy-operator
-debver: 1.0-0
+debver: 1.0-1
 src_path: stx-ipsec-policy-operator
 revision:
   stx_patch: 0
