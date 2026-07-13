@@ -1,6 +1,6 @@
 ---
 debname: ipsec-policy-manager-helm
-debver: 1.0-0
+debver: 1.1-1
 src_path: ipsec-policy-manager-helm
 revision:
   dist: $STX_DIST
