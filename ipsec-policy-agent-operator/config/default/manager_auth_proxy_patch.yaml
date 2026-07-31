@@ -25,7 +25,7 @@ spec:
           capabilities:
             drop:
             - "ALL"
-        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.16.0
+        image: registry.k8s.io/kubebuilder/kube-rbac-proxy:v0.16.0
         imagePullPolicy: IfNotPresent
         args:
         - "--secure-listen-address=0.0.0.0:8443"
