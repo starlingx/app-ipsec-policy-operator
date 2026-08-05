@@ -1,3 +1,9 @@
+ipsec-policy-manager-helm (1.1-0) unstable; urgency=medium
+
+  * Added support for different docker image tags based on target Debian distro
+
+ --  Leonardo Fagundes Luz Serrano <leonardo.fagundesluzserrano@windriver.com>  Wed, 05 Aug 2026 15:07:42 +0000
+
 ipsec-policy-manager-helm (1.0-0) unstable; urgency=medium
 
   * Initial release.

@@ -13,9 +13,16 @@ export CHART_VERSION = $(RELEASE).$(REVISION)
 	dh $@
 
 override_dh_auto_build:
+	# Image tag substitution defaults
+	$(eval OS_CODENAME ?= bullseye)
+
 	mkdir -p build
 	# Copy ipsec-policy-manager items.
 	mv Makefile ipsec-policy-manager build
+
+	# Substitute image tags in helm chart values
+	sed -i 's|@OS_CODENAME@|$(OS_CODENAME)|g' build/ipsec-policy-manager/values.yaml
+
 	# Build the chart
 	cd build && make CHART_VERSION=$(CHART_VERSION) ipsec-policy-manager
 
