@@ -1,9 +1,3 @@
-ipsec-policy-agent-helm (1.1-1) unstable; urgency=medium
-
-  * Added distro and arch information in container image tags
-
- --  Scott Little <scott.little@windriver.com>  Tue, 28 Apr 2026 12:11:15 +0000
-
 ipsec-policy-agent-helm (1.0-0) unstable; urgency=medium
 
   * Initial release.

@@ -1,6 +1,6 @@
 ---
 debname: ipsec-policy-agent-helm
-debver: 1.1-1
+debver: 1.0-0
 src_path: ipsec-policy-agent-helm
 revision:
   dist: $STX_DIST
