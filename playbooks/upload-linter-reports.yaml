@@ -1,0 +1,14 @@
+- hosts: all
+  tasks:
+    - name: Find linter report
+      stat:
+        path: "{{ zuul.project.src_dir }}/python3-k8sapp-ipsec-policy-operator/k8sapp_ipsec_policy_operator/UTCoverage/lint_report.txt"
+      register: lint_report
+
+    - name: Upload linter report
+      synchronize:
+        src: "{{ zuul.project.src_dir }}/python3-k8sapp-ipsec-policy-operator/k8sapp_ipsec_policy_operator/UTCoverage/lint_report.txt"
+        dest: "{{ zuul.executor.log_root }}/lint_report.txt"
+        mode: pull
+      when: lint_report.stat.exists
+      failed_when: false
