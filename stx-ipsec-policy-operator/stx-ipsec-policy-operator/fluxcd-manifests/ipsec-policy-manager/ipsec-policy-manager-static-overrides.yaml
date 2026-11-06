@@ -1,6 +1,8 @@
 global:
   imagePullSecrets: [{"name": "default-registry-key"}]
 controllerManager:
+  podLabels:
+    app.starlingx.io/component: "platform"
   kubeRbacProxy:
     image:
       repository: registry.k8s.io/kubebuilder/kube-rbac-proxy
