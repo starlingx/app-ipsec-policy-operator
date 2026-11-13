@@ -19,8 +19,12 @@ spec:
       annotations:
         kubectl.kubernetes.io/default-container: manager
       labels:
+        app: ipsec-policy-agent
         control-plane: controller-manager
         ipsec-policy-agent-operator: enabled
+        {{- with .Values.controllerManager.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       imagePullSecrets:
         - name: default-registry-key

@@ -30,12 +30,44 @@ class HostLabelAlreadyExists(Exception):
     pass
 
 
+class HelmOverrideNotFound(Exception):
+    def __init__(self, *args, **kwargs):
+        super().__init__("helm override not found")
+
+
 # --- Base classes ---
 class BaseHelm(object):
     SUPPORTED_NAMESPACES = ['kube-system']
 
     def __init__(self, *args, **kwargs):
         pass
+
+
+class KubeOperator(object):
+    """Mock KubeOperator; tests patch methods below as needed."""
+
+    def kube_get_pods_by_selector(self, namespace, label_selector,
+                                  field_selector):
+        raise HelmOverrideNotFound()
+
+    def kube_get_namespace(self, namespace):
+        raise HelmOverrideNotFound()
+
+    def kube_patch_namespace(self, namespace, body):
+        pass
+
+
+class _MockDbApiInstance(object):
+    """Minimal stand-in for sysinv.db.api's dbapi singleton."""
+
+    def kube_app_get(self, name):
+        return mock.MagicMock(id=1)
+
+    def helm_override_get(self, app_id, name, namespace):
+        raise HelmOverrideNotFound()
+
+
+_mock_dbapi_instance = _MockDbApiInstance()
 
 
 class AppLifecycleOperator(object):
@@ -72,6 +104,7 @@ if 'sysinv.common' not in sys.modules:
         LifecycleSemanticCheckException
     mod_exception.InvalidHelmNamespace = InvalidHelmNamespace
     mod_exception.HostLabelAlreadyExists = HostLabelAlreadyExists
+    mod_exception.HelmOverrideNotFound = HelmOverrideNotFound
 
     # sysinv.common.constants
     mock_sys_constants = types.ModuleType('sysinv.common.constants')
@@ -83,12 +116,19 @@ if 'sysinv.common' not in sys.modules:
     # sysinv.common.kubernetes
     mock_kubernetes = types.ModuleType('sysinv.common.kubernetes')
     mock_kubernetes.KUBERNETES_ADMIN_CONF = '/etc/kubernetes/admin.conf'
+    mock_kubernetes.KubeOperator = KubeOperator
 
     # sysinv.common.utils
     mock_cutils = mock.MagicMock()
     mock_cutils.__name__ = 'sysinv.common.utils'
     mock_cutils.is_aio_simplex_system = mock.MagicMock(return_value=False)
     mock_cutils.trycmd = mock.MagicMock(return_value=('', ''))
+
+    # sysinv.db.api
+    mod_sysinv_db = types.ModuleType('sysinv.db')
+    mod_db_api = types.ModuleType('sysinv.db.api')
+    mod_db_api.get_instance = mock.MagicMock(
+        return_value=_mock_dbapi_instance)
 
     # sysinv.helm.base
     mod_helm_base = types.ModuleType('sysinv.helm.base')
@@ -119,6 +159,8 @@ if 'sysinv.common' not in sys.modules:
     # Wire up module hierarchy
     mod_sysinv.common = mod_sysinv_common
     mod_sysinv.helm = mod_sysinv_helm
+    mod_sysinv.db = mod_sysinv_db
+    mod_sysinv_db.api = mod_db_api
     mod_sysinv_common.exception = mod_exception
     mod_sysinv_common.constants = mock_sys_constants
     mod_sysinv_common.kubernetes = mock_kubernetes
@@ -140,6 +182,8 @@ if 'sysinv.common' not in sys.modules:
     sys.modules['sysinv.helm.lifecycle_base'] = mod_lifecycle_base
     sys.modules['sysinv.helm.lifecycle_utils'] = mock_lifecycle_utils
     sys.modules['sysinv.helm.lifecycle_constants'] = mod_lifecycle_constants
+    sys.modules['sysinv.db'] = mod_sysinv_db
+    sys.modules['sysinv.db.api'] = mod_db_api
     sys.modules['oslo_log'] = mod_oslo_log
     sys.modules['oslo_log.log'] = mod_oslo_log_log
 

@@ -1,9 +1,10 @@
 #
-# Copyright (c) 2025 Wind River Systems, Inc.
+# Copyright (c) 2026 Wind River Systems, Inc.
 #
 # SPDX-License-Identifier: Apache-2.0
 #
 from k8sapp_ipsec_policy_operator.common import constants as app_constants
+from k8sapp_ipsec_policy_operator.common import utils
 from oslo_log import log
 from sysinv.common import exception
 from sysinv.helm import base
@@ -16,11 +17,8 @@ class IPsecPolicyAgentHelm(base.BaseHelm):
 
     CHART = app_constants.HELM_CHART_IPSEC_POLICY_AGENT
 
-    SUPPORTED_NAMESPACES = base.BaseHelm.SUPPORTED_NAMESPACES + \
-        [app_constants.HELM_NS_IPSEC_POLICY_OPERATOR]
-
     SUPPORTED_APP_NAMESPACES = {
-        app_constants.HELM_APP_IPSEC_POLICY_OPERATOR: SUPPORTED_NAMESPACES
+        app_constants.HELM_APP_IPSEC_POLICY_OPERATOR: app_constants.SUPPORTED_NAMESPACES
     }
 
     def get_overrides(self, namespace=None):
@@ -30,7 +28,10 @@ class IPsecPolicyAgentHelm(base.BaseHelm):
             app_constants.HELM_NS_IPSEC_POLICY_OPERATOR: {}
         }
 
-        if namespace in self.SUPPORTED_NAMESPACES:
+        utils.set_component_label_override(
+            overrides, app_constants.APP_LABEL_IPSEC_POLICY_AGENT, self.CHART)
+
+        if namespace in app_constants.SUPPORTED_NAMESPACES:
             return overrides[namespace]
         elif namespace:
             raise exception.InvalidHelmNamespace(chart=self.CHART,
